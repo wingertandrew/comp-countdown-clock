@@ -1,7 +1,7 @@
 
-# Raspberry Pi Countdown Clock Application
+# Round Ready Countdown Clock
 
-A touch-friendly countdown clock application designed for Raspberry Pi with external API control support for Stream Deck and other devices.
+A touch-friendly countdown clock application. Originally built for Raspberry Pi, it also runs well on macOS for local development and testing. The app includes external API control support for Stream Deck and other devices.
 
 ## Features
 
@@ -15,9 +15,9 @@ A touch-friendly countdown clock application designed for Raspberry Pi with exte
 ## Installation & Setup
 
 ### Prerequisites
-- Raspberry Pi with Raspbian OS
 - Node.js 16+ and npm
-- Touch screen display (recommended)
+- macOS or Raspberry Pi with Raspbian OS
+- Touch screen display (recommended on Raspberry Pi)
 
 ### Quick Start
 ```bash
@@ -29,6 +29,11 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:8080`
+
+### Development on macOS
+1. Install Node.js via [Homebrew](https://brew.sh/) with `brew install node` or download it from the official website.
+2. (Optional) Install the "UFC Sans" font so the app uses it by default.
+3. Run the steps in **Quick Start** above. The Vite dev server works the same on macOS.
 
 ## Usage
 
@@ -45,32 +50,32 @@ The application will be available at `http://localhost:8080`
 
 ## HTTP API Reference
 
-Base URL: `http://<raspberry-pi-ip>:8080/api`
+Base URL: `http://<device-ip>:8080/api` (use `localhost` when developing on macOS)
 
 ### Timer Controls
 ```bash
 # Start timer
-curl -X POST http://192.168.1.100:8080/api/start
+curl -X POST http://localhost:8080/api/start
 
 # Pause/Resume timer
-curl -X POST http://192.168.1.100:8080/api/pause
+curl -X POST http://localhost:8080/api/pause
 
 # Reset timer
-curl -X POST http://192.168.1.100:8080/api/reset
+curl -X POST http://localhost:8080/api/reset
 
 # Next round
-curl -X POST http://192.168.1.100:8080/api/next-round
+curl -X POST http://localhost:8080/api/next-round
 ```
 
 ### Configuration
 ```bash
 # Set timer duration
-curl -X POST http://192.168.1.100:8080/api/set-time \
+curl -X POST http://localhost:8080/api/set-time \
   -H "Content-Type: application/json" \
   -d '{"minutes": 5, "seconds": 30}'
 
 # Set number of rounds
-curl -X POST http://192.168.1.100:8080/api/set-rounds \
+curl -X POST http://localhost:8080/api/set-rounds \
   -H "Content-Type: application/json" \
   -d '{"rounds": 10}'
 ```
@@ -78,14 +83,14 @@ curl -X POST http://192.168.1.100:8080/api/set-rounds \
 ### Status
 ```bash
 # Get current status
-curl http://192.168.1.100:8080/api/status
+curl http://localhost:8080/api/status
 ```
 
 ## Stream Deck Integration
 
 ### Using Companion
 1. Add HTTP Request actions in Companion
-2. Configure your Raspberry Pi's IP address
+2. Configure your device's IP address (use `localhost` during development)
 3. Use the API endpoints listed above
 4. Set appropriate HTTP methods (POST for controls, GET for status)
 

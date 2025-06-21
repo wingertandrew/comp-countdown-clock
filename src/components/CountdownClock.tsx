@@ -299,6 +299,14 @@ const CountdownClock = () => {
     toast({ title: clockState.isPaused ? "Timer Resumed" : "Timer Paused" });
   };
 
+  const togglePlayPause = () => {
+    if (!clockState.isRunning || clockState.isPaused) {
+      startTimer();
+    } else {
+      pauseTimer();
+    }
+  };
+
   const resetTimer = () => {
     setClockState(prev => ({
       ...prev,
@@ -394,6 +402,9 @@ const CountdownClock = () => {
         </TabsList>
 
         <TabsContent value="clock" className="space-y-6">
+          {clockState.isPaused && (
+            <div className="w-full h-12 bg-yellow-500 rounded-md animate-pulse" />
+          )}
           {/* Main Timer Display */}
           <Card className="bg-black/50 border-slate-700">
             <CardContent className="p-8 text-center">
@@ -420,23 +431,20 @@ const CountdownClock = () => {
           {/* Control Buttons */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Button
-              onClick={startTimer}
-              disabled={clockState.isRunning && !clockState.isPaused}
+              onClick={togglePlayPause}
               size="lg"
-              className="h-20 text-xl bg-green-600 hover:bg-green-700"
+              className={`h-20 text-xl ${
+                clockState.isRunning && !clockState.isPaused
+                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
-              <Play className="w-8 h-8 mr-2" />
-              Start
-            </Button>
-            
-            <Button
-              onClick={pauseTimer}
-              disabled={!clockState.isRunning}
-              size="lg"
-              className="h-20 text-xl bg-yellow-600 hover:bg-yellow-700"
-            >
-              <Pause className="w-8 h-8 mr-2" />
-              {clockState.isPaused ? 'Resume' : 'Pause'}
+              {clockState.isRunning && !clockState.isPaused ? (
+                <Pause className="w-8 h-8 mr-2" />
+              ) : (
+                <Play className="w-8 h-8 mr-2" />
+              )}
+              {clockState.isRunning && !clockState.isPaused ? 'Pause' : 'Play'}
             </Button>
             
             <Button

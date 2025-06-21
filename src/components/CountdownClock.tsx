@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,28 +42,44 @@ const CountdownClock = () => {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Initialize WebSocket connection for external control
-    const ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port || 8080}/ws`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('WebSocket connected for external control');
-    };
-
-    ws.onmessage = (event) => {
+    // Only attempt WebSocket connection in production environment on Raspberry Pi
+    // Skip WebSocket in development to avoid security errors
+    const isProduction = window.location.protocol === 'http:' || window.location.hostname === 'localhost' || window.location.hostname.includes('raspberrypi');
+    
+    if (isProduction) {
       try {
-        const command = JSON.parse(event.data);
-        handleExternalCommand(command);
-      } catch (error) {
-        console.error('Invalid WebSocket message:', error);
-      }
-    };
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws`);
+        wsRef.current = ws;
 
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
+        ws.onopen = () => {
+          console.log('WebSocket connected for external control');
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const command = JSON.parse(event.data);
+            handleExternalCommand(command);
+          } catch (error) {
+            console.error('Invalid WebSocket message:', error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.log('WebSocket connection failed:', error);
+        };
+
+        return () => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
+        };
+      } catch (error) {
+        console.log('WebSocket not available in this environment');
       }
-    };
+    } else {
+      console.log('WebSocket disabled in development environment');
+    }
   }, []);
 
   const handleExternalCommand = (command: any) => {

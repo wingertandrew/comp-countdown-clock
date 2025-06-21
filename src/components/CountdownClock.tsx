@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Pause, RotateCcw, SkipForward, Settings, Info } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Settings, Info, Plus, Minus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ClockState {
@@ -15,6 +15,9 @@ interface ClockState {
   isPaused: boolean;
   elapsedMinutes: number;
   elapsedSeconds: number;
+  pauseStartTime: number | null;
+  totalPausedTime: number;
+  currentPauseDuration: number;
 }
 
 const CountdownClock = () => {
@@ -26,7 +29,10 @@ const CountdownClock = () => {
     isRunning: false,
     isPaused: false,
     elapsedMinutes: 0,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    pauseStartTime: null,
+    totalPausedTime: 0,
+    currentPauseDuration: 0
   });
 
   const [initialTime, setInitialTime] = useState({ minutes: 5, seconds: 0 });
@@ -34,12 +40,69 @@ const CountdownClock = () => {
   const [inputSeconds, setInputSeconds] = useState(0);
   const [inputRounds, setInputRounds] = useState(3);
   const [activeTab, setActiveTab] = useState('clock');
+  const [ntpOffset, setNtpOffset] = useState(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pauseIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   // WebSocket for API communication
   const wsRef = useRef<WebSocket | null>(null);
+
+  // NTP Time Sync
+  useEffect(() => {
+    const syncWithNTP = async () => {
+      try {
+        const before = Date.now();
+        const response = await fetch('http://worldtimeapi.org/api/timezone/Etc/UTC');
+        const after = Date.now();
+        const data = await response.json();
+        
+        const serverTime = new Date(data.datetime).getTime();
+        const networkDelay = (after - before) / 2;
+        const clientTime = before + networkDelay;
+        const offset = serverTime - clientTime;
+        
+        setNtpOffset(offset);
+        console.log('NTP sync completed. Offset:', offset, 'ms');
+      } catch (error) {
+        console.log('NTP sync failed, using local time:', error);
+        setNtpOffset(0);
+      }
+    };
+
+    syncWithNTP();
+    const ntpInterval = setInterval(syncWithNTP, 300000); // Sync every 5 minutes
+
+    return () => clearInterval(ntpInterval);
+  }, []);
+
+  const getNTPTime = () => Date.now() + ntpOffset;
+
+  // Track pause duration
+  useEffect(() => {
+    if (clockState.isPaused && clockState.pauseStartTime) {
+      pauseIntervalRef.current = setInterval(() => {
+        const currentTime = getNTPTime();
+        const pauseDuration = Math.floor((currentTime - clockState.pauseStartTime!) / 1000);
+        setClockState(prev => ({
+          ...prev,
+          currentPauseDuration: pauseDuration
+        }));
+      }, 1000);
+    } else {
+      if (pauseIntervalRef.current) {
+        clearInterval(pauseIntervalRef.current);
+        pauseIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (pauseIntervalRef.current) {
+        clearInterval(pauseIntervalRef.current);
+      }
+    };
+  }, [clockState.isPaused, clockState.pauseStartTime, ntpOffset]);
 
   useEffect(() => {
     // Only attempt WebSocket connection in production environment on Raspberry Pi
@@ -117,7 +180,8 @@ const CountdownClock = () => {
       wsRef.current.send(JSON.stringify({
         type: 'status',
         ...clockState,
-        totalTime: initialTime
+        totalTime: initialTime,
+        ntpTime: getNTPTime()
       }));
     }
   };
@@ -191,12 +255,47 @@ const CountdownClock = () => {
   }, [clockState.isRunning, clockState.isPaused, initialTime, toast]);
 
   const startTimer = () => {
-    setClockState(prev => ({ ...prev, isRunning: true, isPaused: false }));
+    setClockState(prev => {
+      let newTotalPausedTime = prev.totalPausedTime;
+      if (prev.isPaused && prev.pauseStartTime) {
+        newTotalPausedTime += Math.floor((getNTPTime() - prev.pauseStartTime) / 1000);
+      }
+      return {
+        ...prev,
+        isRunning: true,
+        isPaused: false,
+        pauseStartTime: null,
+        totalPausedTime: newTotalPausedTime,
+        currentPauseDuration: 0
+      };
+    });
     toast({ title: "Timer Started" });
   };
 
   const pauseTimer = () => {
-    setClockState(prev => ({ ...prev, isPaused: !prev.isPaused }));
+    setClockState(prev => {
+      if (prev.isPaused) {
+        // Resuming
+        let newTotalPausedTime = prev.totalPausedTime;
+        if (prev.pauseStartTime) {
+          newTotalPausedTime += Math.floor((getNTPTime() - prev.pauseStartTime) / 1000);
+        }
+        return {
+          ...prev,
+          isPaused: false,
+          pauseStartTime: null,
+          totalPausedTime: newTotalPausedTime,
+          currentPauseDuration: 0
+        };
+      } else {
+        // Pausing
+        return {
+          ...prev,
+          isPaused: true,
+          pauseStartTime: getNTPTime()
+        };
+      }
+    });
     toast({ title: clockState.isPaused ? "Timer Resumed" : "Timer Paused" });
   };
 
@@ -209,7 +308,10 @@ const CountdownClock = () => {
       seconds: initialTime.seconds,
       currentRound: 1,
       elapsedMinutes: 0,
-      elapsedSeconds: 0
+      elapsedSeconds: 0,
+      pauseStartTime: null,
+      totalPausedTime: 0,
+      currentPauseDuration: 0
     }));
     toast({ title: "Timer Reset" });
   };
@@ -222,7 +324,10 @@ const CountdownClock = () => {
         minutes: initialTime.minutes,
         seconds: initialTime.seconds,
         elapsedMinutes: 0,
-        elapsedSeconds: 0
+        elapsedSeconds: 0,
+        totalPausedTime: 0,
+        currentPauseDuration: 0,
+        pauseStartTime: null
       }));
       toast({ title: `Round ${clockState.currentRound + 1} Started` });
     }
@@ -240,7 +345,10 @@ const CountdownClock = () => {
       isRunning: false,
       isPaused: false,
       elapsedMinutes: 0,
-      elapsedSeconds: 0
+      elapsedSeconds: 0,
+      pauseStartTime: null,
+      totalPausedTime: 0,
+      currentPauseDuration: 0
     }));
   };
 
@@ -262,6 +370,12 @@ const CountdownClock = () => {
 
   const formatTime = (minutes: number, seconds: number) => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatDuration = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -289,8 +403,16 @@ const CountdownClock = () => {
               <div className="text-2xl text-slate-300 mb-4">
                 Round {clockState.currentRound} of {clockState.totalRounds}
               </div>
-              <div className="text-lg text-slate-400">
+              <div className="text-lg text-slate-400 mb-2">
                 Elapsed: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}
+              </div>
+              {clockState.isPaused && (
+                <div className="text-xl text-yellow-400 mb-2 animate-pulse">
+                  ⏸️ PAUSED - {formatDuration(clockState.currentPauseDuration)}
+                </div>
+              )}
+              <div className="text-sm text-slate-500">
+                Total Paused: {formatDuration(clockState.totalPausedTime)}
               </div>
             </CardContent>
           </Card>
@@ -346,39 +468,87 @@ const CountdownClock = () => {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-lg font-medium mb-2">Minutes</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={inputMinutes}
-                    onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                    className="text-xl h-14 bg-slate-800 border-slate-600"
-                  />
+                  <label className="block text-lg font-medium mb-4">Minutes</label>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))}
+                      size="lg"
+                      className="h-16 w-16 text-2xl bg-red-600 hover:bg-red-700"
+                    >
+                      <Minus className="w-8 h-8" />
+                    </Button>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={inputMinutes}
+                      onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
+                      className="text-xl h-16 bg-slate-800 border-slate-600 text-center"
+                    />
+                    <Button
+                      onClick={() => setInputMinutes(Math.min(59, inputMinutes + 1))}
+                      size="lg"
+                      className="h-16 w-16 text-2xl bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-8 h-8" />
+                    </Button>
+                  </div>
                 </div>
                 
                 <div>
-                  <label className="block text-lg font-medium mb-2">Seconds</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={inputSeconds}
-                    onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-                    className="text-xl h-14 bg-slate-800 border-slate-600"
-                  />
+                  <label className="block text-lg font-medium mb-4">Seconds</label>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))}
+                      size="lg"
+                      className="h-16 w-16 text-2xl bg-red-600 hover:bg-red-700"
+                    >
+                      <Minus className="w-8 h-8" />
+                    </Button>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={inputSeconds}
+                      onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
+                      className="text-xl h-16 bg-slate-800 border-slate-600 text-center"
+                    />
+                    <Button
+                      onClick={() => setInputSeconds(Math.min(59, inputSeconds + 1))}
+                      size="lg"
+                      className="h-16 w-16 text-2xl bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-8 h-8" />
+                    </Button>
+                  </div>
                 </div>
                 
                 <div>
-                  <label className="block text-lg font-medium mb-2">Rounds (1-15)</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="15"
-                    value={inputRounds}
-                    onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-                    className="text-xl h-14 bg-slate-800 border-slate-600"
-                  />
+                  <label className="block text-lg font-medium mb-4">Rounds (1-15)</label>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      onClick={() => setInputRounds(Math.max(1, inputRounds - 1))}
+                      size="lg"
+                      className="h-16 w-16 text-2xl bg-red-600 hover:bg-red-700"
+                    >
+                      <Minus className="w-8 h-8" />
+                    </Button>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="15"
+                      value={inputRounds}
+                      onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
+                      className="text-xl h-16 bg-slate-800 border-slate-600 text-center"
+                    />
+                    <Button
+                      onClick={() => setInputRounds(Math.min(15, inputRounds + 1))}
+                      size="lg"
+                      className="h-16 w-16 text-2xl bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-8 h-8" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               
@@ -441,11 +611,19 @@ const CountdownClock = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-cyan-400 mb-2">Status</h3>
+                  <h3 className="text-xl font-semibold text-cyan-400 mb-2">Status & Display Pages</h3>
                   <div className="space-y-3 text-sm">
                     <div className="bg-slate-800 p-3 rounded">
                       <code className="text-cyan-300">GET /status</code>
                       <p className="text-slate-300 mt-1">Get current timer state and settings</p>
+                    </div>
+                    <div className="bg-slate-800 p-3 rounded">
+                      <code className="text-cyan-300">GET /clockpretty</code>
+                      <p className="text-slate-300 mt-1">Beautiful dark dashboard display (read-only)</p>
+                    </div>
+                    <div className="bg-slate-800 p-3 rounded">
+                      <code className="text-cyan-300">GET /clockarena</code>
+                      <p className="text-slate-300 mt-1">Compact arena-style countdown display</p>
                     </div>
                   </div>
                 </div>
@@ -459,6 +637,7 @@ const CountdownClock = () => {
                       <li>Set method to POST for controls</li>
                       <li>Use GET for status checks</li>
                       <li>Configure with your Pi's IP address</li>
+                      <li>NTP synchronized for accurate timing</li>
                     </ul>
                   </div>
                 </div>

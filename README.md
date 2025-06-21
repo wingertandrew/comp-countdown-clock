@@ -1,73 +1,150 @@
-# Welcome to your Lovable project
 
-## Project info
+# Raspberry Pi Countdown Clock Application
 
-**URL**: https://lovable.dev/projects/31645ee5-331e-405f-be34-b426e4f3e22f
+A touch-friendly countdown clock application designed for Raspberry Pi with external API control support for Stream Deck and other devices.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Large, Touch-Friendly Interface**: Optimized for touchscreen displays
+- **Multi-Round Support**: Configure 1-15 rounds with automatic progression
+- **External Control**: HTTP API for Stream Deck and other external devices
+- **Real-Time Updates**: WebSocket support for live status updates
+- **Responsive Design**: Works on various screen sizes
+- **Visual Feedback**: Toast notifications and clear status indicators
 
-**Use Lovable**
+## Installation & Setup
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/31645ee5-331e-405f-be34-b426e4f3e22f) and start prompting.
+### Prerequisites
+- Raspberry Pi with Raspbian OS
+- Node.js 16+ and npm
+- Touch screen display (recommended)
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Quick Start
+```bash
+# Clone and setup
+git clone <repository-url>
+cd countdown-clock-app
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Usage
 
-**Use GitHub Codespaces**
+### Touch Interface
+1. **Clock Tab**: Main countdown display with large timer and controls
+2. **Settings Tab**: Configure timer duration and number of rounds
+3. **API Info Tab**: Complete documentation for external control
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Controls
+- **Start**: Begin countdown
+- **Pause/Resume**: Pause or resume timer
+- **Reset**: Reset to initial settings
+- **Next Round**: Skip to next round
 
-## What technologies are used for this project?
+## HTTP API Reference
 
-This project is built with:
+Base URL: `http://<raspberry-pi-ip>:8080/api`
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Timer Controls
+```bash
+# Start timer
+curl -X POST http://192.168.1.100:8080/api/start
 
-## How can I deploy this project?
+# Pause/Resume timer
+curl -X POST http://192.168.1.100:8080/api/pause
 
-Simply open [Lovable](https://lovable.dev/projects/31645ee5-331e-405f-be34-b426e4f3e22f) and click on Share -> Publish.
+# Reset timer
+curl -X POST http://192.168.1.100:8080/api/reset
 
-## Can I connect a custom domain to my Lovable project?
+# Next round
+curl -X POST http://192.168.1.100:8080/api/next-round
+```
 
-Yes, you can!
+### Configuration
+```bash
+# Set timer duration
+curl -X POST http://192.168.1.100:8080/api/set-time \
+  -H "Content-Type: application/json" \
+  -d '{"minutes": 5, "seconds": 30}'
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Set number of rounds
+curl -X POST http://192.168.1.100:8080/api/set-rounds \
+  -H "Content-Type: application/json" \
+  -d '{"rounds": 10}'
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Status
+```bash
+# Get current status
+curl http://192.168.1.100:8080/api/status
+```
+
+## Stream Deck Integration
+
+### Using Companion
+1. Add HTTP Request actions in Companion
+2. Configure your Raspberry Pi's IP address
+3. Use the API endpoints listed above
+4. Set appropriate HTTP methods (POST for controls, GET for status)
+
+### Example Stream Deck Layout
+- Button 1: Start Timer (POST /api/start)
+- Button 2: Pause Timer (POST /api/pause)
+- Button 3: Reset Timer (POST /api/reset)
+- Button 4: Next Round (POST /api/next-round)
+
+## Technical Implementation
+
+### Backend API Server (Required for Production)
+For full API functionality, implement a Node.js/Express server:
+
+```javascript
+const express = require('express');
+const WebSocket = require('ws');
+const app = express();
+
+// API endpoints
+app.post('/api/start', (req, res) => {
+  // Broadcast start command to WebSocket clients
+  broadcast({ action: 'start' });
+  res.json({ success: true });
+});
+
+// Additional endpoints...
+```
+
+### WebSocket Integration
+The application supports real-time communication via WebSocket:
+- Server sends commands to connected clients
+- Clients broadcast status updates
+- Enables synchronization across multiple displays
+
+## Customization
+
+### Display Settings
+- Modify timer font size in `CountdownClock.tsx`
+- Adjust color schemes in the component styles
+- Configure touch target sizes for different screen sizes
+
+### API Extensions
+- Add authentication for security
+- Implement preset timer configurations
+- Add logging and analytics
+
+## Troubleshooting
+
+### Common Issues
+1. **API not responding**: Ensure backend server is running
+2. **Touch not working**: Check display calibration
+3. **WebSocket errors**: Verify network connectivity
+
+### Performance Optimization
+- Use hardware acceleration on Raspberry Pi
+- Optimize React rendering for smoother animations
+- Configure appropriate display resolution
+
+## License
+
+MIT License - see LICENSE file for details

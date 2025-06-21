@@ -41,15 +41,21 @@ const CountdownClock = () => {
   const [inputRounds, setInputRounds] = useState(3);
   const [activeTab, setActiveTab] = useState('clock');
   const [ntpOffset, setNtpOffset] = useState(0);
+  const [ipAddress, setIpAddress] = useState('');
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const pauseIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-
-  // WebSocket for API communication
   const wsRef = useRef<WebSocket | null>(null);
 
-  // NTP Time Sync
+  // Get local IP address for display
+  useEffect(() => {
+    // This is a simple way to get the local IP - in a real Raspberry Pi environment,
+    // you might want to use a more robust method
+    setIpAddress(window.location.hostname || 'localhost');
+  }, []);
+
+  // WebSocket for API communication
   useEffect(() => {
     const syncWithNTP = async () => {
       try {
@@ -72,8 +78,7 @@ const CountdownClock = () => {
     };
 
     syncWithNTP();
-    const ntpInterval = setInterval(syncWithNTP, 300000); // Sync every 5 minutes
-
+    const ntpInterval = setInterval(syncWithNTP, 300000);
     return () => clearInterval(ntpInterval);
   }, []);
 
@@ -386,97 +391,138 @@ const CountdownClock = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const getStatusText = () => {
+    if (clockState.isPaused) return 'PAUSED';
+    if (clockState.isRunning) return 'RUNNING';
+    return 'READY';
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-6xl mx-auto">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="clock" className="text-lg py-3">Clock</TabsTrigger>
-          <TabsTrigger value="settings" className="text-lg py-3">
+    <div className="min-h-screen bg-black text-white">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
+        <TabsList className="grid w-full grid-cols-3 mb-4 bg-gray-800 border-gray-700">
+          <TabsTrigger value="clock" className="text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
+          <TabsTrigger value="settings" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Settings className="w-5 h-5 mr-2" />
             Settings
           </TabsTrigger>
-          <TabsTrigger value="info" className="text-lg py-3">
+          <TabsTrigger value="info" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Info className="w-5 h-5 mr-2" />
             API Info
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="clock" className="space-y-6">
-          {clockState.isPaused && (
-            <div className="w-full h-12 bg-yellow-500 rounded-md animate-pulse" />
-          )}
-          {/* Main Timer Display */}
-          <Card className="bg-black/50 border-slate-700">
-            <CardContent className="p-8 text-center">
-              <div className="text-9xl md:text-[12rem] font-mono font-bold tracking-wider mb-4 text-green-400">
-                {formatTime(clockState.minutes, clockState.seconds)}
+        <TabsContent value="clock" className="space-y-4 p-4">
+          {/* Main Timer Card - Inspired by the uploaded design */}
+          <div className="bg-gray-800 rounded-3xl p-8 border-4 border-gray-600">
+            {/* Elapsed Time Header */}
+            <div className="text-center mb-4">
+              <div className="flex items-center justify-center gap-4 text-white text-xl font-bold mb-2">
+                <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
+                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                </div>
+                <span>ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
               </div>
-              <div className="text-2xl text-slate-300 mb-4">
-                Round {clockState.currentRound} of {clockState.totalRounds}
+            </div>
+
+            {/* Main Timer Display */}
+            <div className="bg-black rounded-2xl p-12 mb-6">
+              <div className="text-center">
+                <div className="text-[12rem] md:text-[16rem] font-bold tracking-wider text-white leading-none font-mono">
+                  {formatTime(clockState.minutes, clockState.seconds)}
+                </div>
               </div>
-              <div className="text-lg text-slate-400 mb-2">
-                Elapsed: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}
+            </div>
+
+            {/* Status Bar */}
+            <div className="bg-gray-300 rounded-xl p-6 mb-4">
+              <div className="flex items-center justify-center gap-4 text-black text-3xl font-bold">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="w-8 h-8" />
+                  <span>{getStatusText()}</span>
+                </div>
+                {clockState.isPaused && (
+                  <span className="text-yellow-600">
+                    - {formatDuration(clockState.currentPauseDuration)}
+                  </span>
+                )}
               </div>
-              {clockState.isPaused && (
-                <div className="text-xl text-yellow-400 mb-2 animate-pulse">
-                  ⏸️ PAUSED - {formatDuration(clockState.currentPauseDuration)}
+            </div>
+
+            {/* IP Address */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 text-white text-lg">
+                <div className="w-3 h-3 bg-white rounded-full"></div>
+                <span>{ipAddress}</span>
+              </div>
+            </div>
+
+            {/* Control Buttons */}
+            <div className="grid grid-cols-5 gap-4">
+              <Button
+                onClick={() => setTime(Math.max(0, clockState.minutes - 1), clockState.seconds)}
+                disabled={clockState.isRunning}
+                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+              >
+                <Plus className="w-8 h-8" />
+              </Button>
+              
+              <Button
+                onClick={() => setTime(Math.min(59, clockState.minutes + 1), clockState.seconds)}
+                disabled={clockState.isRunning}
+                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+              >
+                <Minus className="w-8 h-8" />
+              </Button>
+
+              <Button
+                onClick={togglePlayPause}
+                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl text-4xl"
+              >
+                {clockState.isRunning && !clockState.isPaused ? (
+                  <div className="w-6 h-8 bg-black"></div>
+                ) : (
+                  <Play className="w-8 h-8 fill-black" />
+                )}
+              </Button>
+
+              <Button
+                onClick={resetTimer}
+                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+              >
+                <div className="w-6 h-6 bg-black rounded-sm"></div>
+              </Button>
+
+              <Button
+                onClick={nextRound}
+                disabled={clockState.currentRound >= clockState.totalRounds}
+                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+              >
+                <RotateCcw className="w-8 h-8" />
+              </Button>
+            </div>
+
+            {/* Round Info */}
+            <div className="text-center mt-6 text-white text-xl">
+              Round {clockState.currentRound} of {clockState.totalRounds}
+              {clockState.totalPausedTime > 0 && (
+                <div className="text-yellow-400 text-lg mt-2">
+                  Total Paused: {formatDuration(clockState.totalPausedTime)}
                 </div>
               )}
-              <div className="text-sm text-slate-500">
-                Total Paused: {formatDuration(clockState.totalPausedTime)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Control Buttons */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button
-              onClick={togglePlayPause}
-              size="lg"
-              className={`h-20 text-xl ${
-                clockState.isRunning && !clockState.isPaused
-                  ? 'bg-yellow-600 hover:bg-yellow-700'
-                  : 'bg-green-600 hover:bg-green-700'
-              }`}
-            >
-              {clockState.isRunning && !clockState.isPaused ? (
-                <Pause className="w-8 h-8 mr-2" />
-              ) : (
-                <Play className="w-8 h-8 mr-2" />
-              )}
-              {clockState.isRunning && !clockState.isPaused ? 'Pause' : 'Play'}
-            </Button>
-            
-            <Button
-              onClick={resetTimer}
-              size="lg"
-              className="h-20 text-xl bg-red-600 hover:bg-red-700"
-            >
-              <RotateCcw className="w-8 h-8 mr-2" />
-              Reset
-            </Button>
-            
-            <Button
-              onClick={nextRound}
-              disabled={clockState.currentRound >= clockState.totalRounds}
-              size="lg"
-              className="h-20 text-xl bg-blue-600 hover:bg-blue-700"
-            >
-              <SkipForward className="w-8 h-8 mr-2" />
-              Next Round
-            </Button>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
-          <Card className="bg-black/50 border-slate-700">
+          <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-2xl">Timer Settings</CardTitle>
+              <CardTitle className="text-2xl text-white">Timer Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-lg font-medium mb-4">Minutes</label>
+                  <label className="block text-lg font-medium mb-4 text-white">Minutes</label>
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))}
@@ -491,7 +537,7 @@ const CountdownClock = () => {
                       max="59"
                       value={inputMinutes}
                       onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                      className="text-xl h-16 bg-slate-800 border-slate-600 text-center"
+                      className="text-xl h-16 bg-gray-700 border-gray-600 text-center text-white"
                     />
                     <Button
                       onClick={() => setInputMinutes(Math.min(59, inputMinutes + 1))}
@@ -504,7 +550,7 @@ const CountdownClock = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-lg font-medium mb-4">Seconds</label>
+                  <label className="block text-lg font-medium mb-4 text-white">Seconds</label>
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))}
@@ -519,7 +565,7 @@ const CountdownClock = () => {
                       max="59"
                       value={inputSeconds}
                       onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-                      className="text-xl h-16 bg-slate-800 border-slate-600 text-center"
+                      className="text-xl h-16 bg-gray-700 border-gray-600 text-center text-white"
                     />
                     <Button
                       onClick={() => setInputSeconds(Math.min(59, inputSeconds + 1))}
@@ -532,7 +578,7 @@ const CountdownClock = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-lg font-medium mb-4">Rounds (1-15)</label>
+                  <label className="block text-lg font-medium mb-4 text-white">Rounds (1-15)</label>
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setInputRounds(Math.max(1, inputRounds - 1))}
@@ -547,7 +593,7 @@ const CountdownClock = () => {
                       max="15"
                       value={inputRounds}
                       onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-                      className="text-xl h-16 bg-slate-800 border-slate-600 text-center"
+                      className="text-xl h-16 bg-gray-700 border-gray-600 text-center text-white"
                     />
                     <Button
                       onClick={() => setInputRounds(Math.min(15, inputRounds + 1))}
@@ -572,34 +618,34 @@ const CountdownClock = () => {
         </TabsContent>
 
         <TabsContent value="info" className="space-y-6">
-          <Card className="bg-black/50 border-slate-700">
+          <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-2xl">HTTP API Documentation</CardTitle>
+              <CardTitle className="text-2xl text-white">HTTP API Documentation</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-lg text-slate-300 mb-6">
-                Base URL: <code className="bg-slate-800 px-2 py-1 rounded">http://&lt;raspberry-pi-ip&gt;:8080/api</code>
+              <div className="text-lg text-gray-300 mb-6">
+                Base URL: <code className="bg-gray-900 px-2 py-1 rounded">http://&lt;raspberry-pi-ip&gt;:8080/api</code>
               </div>
               
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold text-green-400 mb-2">Timer Controls</h3>
                   <div className="space-y-3 text-sm">
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-green-300">POST /start</code>
-                      <p className="text-slate-300 mt-1">Start the countdown timer</p>
+                      <p className="text-gray-300 mt-1">Start the countdown timer</p>
                     </div>
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-yellow-300">POST /pause</code>
-                      <p className="text-slate-300 mt-1">Pause/Resume the timer</p>
+                      <p className="text-gray-300 mt-1">Pause/Resume the timer</p>
                     </div>
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-red-300">POST /reset</code>
-                      <p className="text-slate-300 mt-1">Reset timer to initial settings</p>
+                      <p className="text-gray-300 mt-1">Reset timer to initial settings</p>
                     </div>
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-blue-300">POST /next-round</code>
-                      <p className="text-slate-300 mt-1">Skip to next round</p>
+                      <p className="text-gray-300 mt-1">Skip to next round</p>
                     </div>
                   </div>
                 </div>
@@ -607,13 +653,13 @@ const CountdownClock = () => {
                 <div>
                   <h3 className="text-xl font-semibold text-blue-400 mb-2">Configuration</h3>
                   <div className="space-y-3 text-sm">
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-purple-300">POST /set-time</code>
-                      <p className="text-slate-300 mt-1">Body: <code>{"{"}"minutes": 5, "seconds": 30{"}"}</code></p>
+                      <p className="text-gray-300 mt-1">Body: <code>{"{"}"minutes": 5, "seconds": 30{"}"}</code></p>
                     </div>
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-purple-300">POST /set-rounds</code>
-                      <p className="text-slate-300 mt-1">Body: <code>{"{"}"rounds": 10{"}"}</code></p>
+                      <p className="text-gray-300 mt-1">Body: <code>{"{"}"rounds": 10{"}"}</code></p>
                     </div>
                   </div>
                 </div>
@@ -621,26 +667,26 @@ const CountdownClock = () => {
                 <div>
                   <h3 className="text-xl font-semibold text-cyan-400 mb-2">Status & Display Pages</h3>
                   <div className="space-y-3 text-sm">
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-cyan-300">GET /status</code>
-                      <p className="text-slate-300 mt-1">Get current timer state and settings</p>
+                      <p className="text-gray-300 mt-1">Get current timer state and settings</p>
                     </div>
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-cyan-300">GET /clockpretty</code>
-                      <p className="text-slate-300 mt-1">Beautiful dark dashboard display (read-only)</p>
+                      <p className="text-gray-300 mt-1">Beautiful dark dashboard display (read-only)</p>
                     </div>
-                    <div className="bg-slate-800 p-3 rounded">
+                    <div className="bg-gray-900 p-3 rounded">
                       <code className="text-cyan-300">GET /clockarena</code>
-                      <p className="text-slate-300 mt-1">Compact arena-style countdown display</p>
+                      <p className="text-gray-300 mt-1">Compact arena-style countdown display</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <h3 className="text-xl font-semibold text-orange-400 mb-2">Stream Deck Integration</h3>
-                  <div className="bg-slate-800 p-4 rounded text-sm">
-                    <p className="text-slate-300 mb-2">For Stream Deck with Companion:</p>
-                    <ul className="list-disc list-inside space-y-1 text-slate-400">
+                  <div className="bg-gray-900 p-4 rounded text-sm">
+                    <p className="text-gray-300 mb-2">For Stream Deck with Companion:</p>
+                    <ul className="list-disc list-inside space-y-1 text-gray-400">
                       <li>Use HTTP Request actions</li>
                       <li>Set method to POST for controls</li>
                       <li>Use GET for status checks</li>

@@ -442,7 +442,15 @@ const CountdownClock = () => {
             </div>
 
             {/* Status Bar */}
-            <div className="bg-gray-300 rounded-xl p-6 mb-4">
+            <div
+              className={`${
+                clockState.isPaused
+                  ? 'bg-yellow-300'
+                  : clockState.isRunning
+                  ? 'bg-green-300'
+                  : 'bg-gray-300'
+              } rounded-xl p-6 mb-4`}
+            >
               <div className="flex items-center justify-center gap-4 text-black text-3xl font-bold">
                 <div className="flex items-center gap-2">
                   <RotateCcw className="w-8 h-8" />

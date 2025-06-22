@@ -32,7 +32,7 @@ The application will be available at `http://localhost:8080`
 
 ### Development on macOS
 1. Install Node.js via [Homebrew](https://brew.sh/) with `brew install node` or download it from the official website.
-2. (Optional) Install the "UFC Sans" font so the app uses it by default.
+2. The "UFC Sans" typeface is loaded automatically. You can also install it system wide if desired.
 3. Run the steps in **Quick Start** above. The Vite dev server works the same on macOS.
 
 ## Usage
@@ -93,6 +93,12 @@ curl http://localhost:8080/api/status
 2. Configure your device's IP address (use `localhost` during development)
 3. Use the API endpoints listed above
 4. Set appropriate HTTP methods (POST for controls, GET for status)
+5. Set the port to `8080` unless you changed it in `server.js`
+6. Test each button in Companion's emulator before deploying
+
+For best results create separate buttons for `start`, `pause`, `reset` and `next-round`.  Companion sends the HTTP calls directly to the application and the connected clients stay in sync through WebSocket.
+
+You can also use Companion's HTTP feedback feature to poll `/api/status` and display the remaining time or current round on your Stream Deck keys.
 
 ### Example Stream Deck Layout
 - Button 1: Start Timer (POST /api/start)

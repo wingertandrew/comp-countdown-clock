@@ -103,22 +103,18 @@ curl http://localhost:8080/api/status
 ## Technical Implementation
 
 ### Backend API Server (Required for Production)
-For full API functionality, implement a Node.js/Express server:
+The repository now includes a small Express based server in `server.js` that
+handles the HTTP API and WebSocket communication. After building the client
+with `npm run build`, start the server with:
 
-```javascript
-const express = require('express');
-const WebSocket = require('ws');
-const app = express();
-
-// API endpoints
-app.post('/api/start', (req, res) => {
-  // Broadcast start command to WebSocket clients
-  broadcast({ action: 'start' });
-  res.json({ success: true });
-});
-
-// Additional endpoints...
+```bash
+npm start
 ```
+
+The server serves the contents of the `dist` directory and keeps all connected
+WebSocket clients in sync. API endpoints such as `/api/start`, `/api/pause` and
+others broadcast commands to every client and the clients report their status
+back to the server so other pages remain updated.
 
 ### WebSocket Integration
 The application supports real-time communication via WebSocket:

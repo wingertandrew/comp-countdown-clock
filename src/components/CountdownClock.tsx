@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Play, Pause, RotateCcw, SkipForward, SkipBack, Settings, Info, Plus, Minus, Copy, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface ClockState {
   minutes: number;
@@ -525,33 +526,45 @@ const CountdownClock = () => {
   );
 
   const statusColor = getStatusColor();
+  const borderColorClass =
+    statusColor === 'red'
+      ? 'border-red-500'
+      : statusColor === 'yellow'
+      ? 'border-yellow-500'
+      : 'border-green-500';
+  const bgColorClass =
+    statusColor === 'red'
+      ? 'bg-red-500'
+      : statusColor === 'yellow'
+      ? 'bg-yellow-500'
+      : 'bg-green-500';
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4 bg-gray-800 border-gray-700">
-          <TabsTrigger value="clock" className="text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
-          <TabsTrigger value="settings" className="text-lg py-3 data-[state=active]:bg-gray-600">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-4 bg-gray-800 border-gray-700">
+          <TabsTrigger value="clock" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
+          <TabsTrigger value="settings" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">
             <Settings className="w-5 h-5 mr-2" />
             Settings
           </TabsTrigger>
-          <TabsTrigger value="info" className="text-lg py-3 data-[state=active]:bg-gray-600">
+          <TabsTrigger value="info" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">
             <Info className="w-5 h-5 mr-2" />
             API Info
           </TabsTrigger>
-          <TabsTrigger value="debug" className="text-lg py-3 data-[state=active]:bg-gray-600">
+          <TabsTrigger value="debug" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">
             <Bug className="w-5 h-5 mr-2" />
             Debug
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="clock" className="space-y-4 p-4">
-          <div className={`bg-black rounded-3xl p-8 border-4 border-${statusColor}-500 relative overflow-hidden`}>
+          <div className={cn('bg-black rounded-3xl p-8 border-4 relative overflow-hidden', borderColorClass)}>
             {/* Elapsed Time Header */}
-            <div className={`absolute top-0 left-0 right-0 bg-${statusColor}-500 p-4`}>
+            <div className={cn('absolute top-0 left-0 right-0 p-4', bgColorClass)}>
               <div className="flex items-center justify-center gap-4 text-black text-2xl font-bold">
                 <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
-                  <div className={`w-4 h-4 bg-${statusColor}-500 rounded-full`}></div>
+                  <div className={cn('w-4 h-4 rounded-full', bgColorClass)}></div>
                 </div>
                 <span>ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
               </div>
@@ -567,7 +580,7 @@ const CountdownClock = () => {
             </div>
 
             {/* Status Bar */}
-            <div className={`bg-${statusColor}-500 rounded-xl p-8 mb-6`}>
+            <div className={cn('rounded-xl p-8 mb-6', bgColorClass)}>
               <div className="flex items-center justify-center gap-4 text-black text-4xl font-bold">
                 <div className="flex items-center gap-3">
                   {clockState.isRunning && !clockState.isPaused ? (

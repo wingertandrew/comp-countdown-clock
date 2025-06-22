@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Pause, RotateCcw, SkipForward, Settings, Info, Plus, Minus } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Settings, Info, Plus, Minus, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ClockState {
@@ -397,6 +397,13 @@ const CountdownClock = () => {
     return 'READY';
   };
 
+  const copyCommand = (endpoint: string) => {
+    const url = `${window.location.origin}/api${endpoint}`;
+    const command = `curl -X POST ${url}`;
+    navigator.clipboard.writeText(command);
+    toast({ title: 'Command Copied', description: command });
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
@@ -623,29 +630,59 @@ const CountdownClock = () => {
               <CardTitle className="text-2xl text-white">HTTP API Documentation</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-lg text-gray-300 mb-6">
-                Base URL: <code className="bg-gray-900 px-2 py-1 rounded">http://&lt;raspberry-pi-ip&gt;:8080/api</code>
+              <div className="text-lg text-gray-300">
+                <div>Server accessible at:</div>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>
+                    <code className="bg-gray-900 px-2 py-1 rounded">http://{ipAddress}:{window.location.port || 8080}</code>
+                  </li>
+                  {ipAddress !== 'localhost' && (
+                    <li>
+                      <code className="bg-gray-900 px-2 py-1 rounded">http://localhost:{window.location.port || 8080}</code>
+                    </li>
+                  )}
+                </ul>
               </div>
               
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold text-green-400 mb-2">Timer Controls</h3>
                   <div className="space-y-3 text-sm">
-                    <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-green-300">POST /start</code>
-                      <p className="text-gray-300 mt-1">Start the countdown timer</p>
+                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                      <div>
+                        <code className="text-green-300">POST /start</code>
+                        <p className="text-gray-300 mt-1">Start the countdown timer</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/start')}>
+                        <Copy className="w-5 h-5 text-white" />
+                      </Button>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-yellow-300">POST /pause</code>
-                      <p className="text-gray-300 mt-1">Pause/Resume the timer</p>
+                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                      <div>
+                        <code className="text-yellow-300">POST /pause</code>
+                        <p className="text-gray-300 mt-1">Pause/Resume the timer</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/pause')}>
+                        <Copy className="w-5 h-5 text-white" />
+                      </Button>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-red-300">POST /reset</code>
-                      <p className="text-gray-300 mt-1">Reset timer to initial settings</p>
+                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                      <div>
+                        <code className="text-red-300">POST /reset</code>
+                        <p className="text-gray-300 mt-1">Reset timer to initial settings</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/reset')}>
+                        <Copy className="w-5 h-5 text-white" />
+                      </Button>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-blue-300">POST /next-round</code>
-                      <p className="text-gray-300 mt-1">Skip to next round</p>
+                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                      <div>
+                        <code className="text-blue-300">POST /next-round</code>
+                        <p className="text-gray-300 mt-1">Skip to next round</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/next-round')}>
+                        <Copy className="w-5 h-5 text-white" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -672,11 +709,15 @@ const CountdownClock = () => {
                       <p className="text-gray-300 mt-1">Get current timer state and settings</p>
                     </div>
                     <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-cyan-300">GET /clockpretty</code>
+                      <a href="/clockpretty" target="_blank" className="text-cyan-300 underline">
+                        <code>GET /clockpretty</code>
+                      </a>
                       <p className="text-gray-300 mt-1">Beautiful dark dashboard display (read-only)</p>
                     </div>
                     <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-cyan-300">GET /clockarena</code>
+                      <a href="/clockarena" target="_blank" className="text-cyan-300 underline">
+                        <code>GET /clockarena</code>
+                      </a>
                       <p className="text-gray-300 mt-1">Compact arena-style countdown display</p>
                     </div>
                   </div>

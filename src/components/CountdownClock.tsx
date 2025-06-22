@@ -591,7 +591,8 @@ const CountdownClock = () => {
                     max="59"
                     value={inputSeconds}
                     onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-                    className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
+className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
+
                   />
                   <div className="flex gap-4 mt-4">
                     <Button
@@ -619,7 +620,8 @@ const CountdownClock = () => {
                     max="15"
                     value={inputRounds}
                     onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-                    className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
+className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
+
                   />
                   <div className="flex gap-4 mt-4">
                     <Button

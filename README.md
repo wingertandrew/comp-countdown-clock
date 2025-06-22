@@ -88,17 +88,23 @@ curl http://localhost:8080/api/status
 
 ## Stream Deck Integration
 
+Bitfocus Companion is free control software for the Elgato Stream Deck. Use it to trigger the HTTP API from your Stream Deck or any network-connected device.
+
 ### Using Companion
-1. Add HTTP Request actions in Companion
-2. Configure your device's IP address (use `localhost` during development)
-3. Use the API endpoints listed above
-4. Set appropriate HTTP methods (POST for controls, GET for status)
-5. Set the port to `8080` unless you changed it in `server.js`
-6. Test each button in Companion's emulator before deploying
 
-For best results create separate buttons for `start`, `pause`, `reset` and `next-round`.  Companion sends the HTTP calls directly to the application and the connected clients stay in sync through WebSocket.
+1. Install [Bitfocus Companion](https://bitfocus.io/companion) and open the web interface.
+2. In the **Connections** tab add the **HTTP Request** module.
+3. Create a button and add an **HTTP Request** action.
+4. Enter a URL like `http://localhost:8080/api/start` (replace `start` with the desired command).
+5. Set the method to `POST` for controls or `GET` for `/api/status`.
+6. Use `localhost` when developing or the clock's IP address on your network.
+7. Keep the port `8080` unless you changed it in `server.js`.
+8. Test each button in Companion's emulator before deploying.
 
-You can also use Companion's HTTP feedback feature to poll `/api/status` and display the remaining time or current round on your Stream Deck keys.
+For best results, create separate buttons for `start`, `pause`, `reset`, and `next-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
+
+You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/api/status` every second and show the current `minutes`, `seconds`, or `round` fields directly on your Stream Deck keys. Combine feedback variables with button styles to change text or colors as the timer updates.
+
 
 ### Example Stream Deck Layout
 - Button 1: Start Timer (POST /api/start)

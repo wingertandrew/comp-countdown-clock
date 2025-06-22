@@ -191,6 +191,12 @@ const CountdownClock = () => {
     }
   };
 
+  // Broadcast the current status whenever it changes so all
+  // connected display pages stay in sync with the main clock
+  useEffect(() => {
+    broadcastStatus();
+  }, [clockState]);
+
   useEffect(() => {
     if (clockState.isRunning && !clockState.isPaused) {
       intervalRef.current = setInterval(() => {

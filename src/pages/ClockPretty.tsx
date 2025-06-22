@@ -140,13 +140,6 @@ const ClockPretty = () => {
         </div>
       </div>
 
-      {/* Visual Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-10 left-10 w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-3 h-3 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-20 left-20 w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-10 right-10 w-5 h-5 bg-pink-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-      </div>
     </div>
   );
 };

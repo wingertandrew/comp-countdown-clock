@@ -1,3 +1,4 @@
+
 import express from 'express';
 import path from 'path';
 import http from 'http';
@@ -59,6 +60,11 @@ app.post('/api/reset', (_req, res) => {
 
 app.post('/api/next-round', (_req, res) => {
   broadcast({ action: 'next-round' });
+  res.json({ success: true });
+});
+
+app.post('/api/previous-round', (_req, res) => {
+  broadcast({ action: 'previous-round' });
   res.json({ success: true });
 });
 

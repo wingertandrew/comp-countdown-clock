@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Pause, RotateCcw, SkipForward, Settings, Info, Plus, Minus, Copy } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Settings, Info, Plus, Minus, Copy, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ClockState {
@@ -19,6 +18,13 @@ interface ClockState {
   pauseStartTime: number | null;
   totalPausedTime: number;
   currentPauseDuration: number;
+}
+
+interface DebugLogEntry {
+  timestamp: string;
+  source: 'UI' | 'API' | 'WEBSOCKET';
+  action: string;
+  details?: any;
 }
 
 const CountdownClock = () => {
@@ -43,45 +49,135 @@ const CountdownClock = () => {
   const [activeTab, setActiveTab] = useState('clock');
   const [ntpOffset, setNtpOffset] = useState(0);
   const [ipAddress, setIpAddress] = useState('');
+  const [ntpServer, setNtpServer] = useState('worldtimeapi.org');
+  const [debugLog, setDebugLog] = useState<DebugLogEntry[]>([]);
+  const [debugFilter, setDebugFilter] = useState<'ALL' | 'UI' | 'API' | 'WEBSOCKET'>('ALL');
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const pauseIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
 
+  // Add debug log entry
+  const addDebugLog = (source: 'UI' | 'API' | 'WEBSOCKET', action: string, details?: any) => {
+    const entry: DebugLogEntry = {
+      timestamp: new Date().toISOString(),
+      source,
+      action,
+      details
+    };
+    setDebugLog(prev => [entry, ...prev].slice(0, 100)); // Keep last 100 entries
+  };
+
+  // Get status color based on clock state
+  const getStatusColor = () => {
+    if (!clockState.isRunning) return 'red'; // stopped
+    if (clockState.isPaused) return 'yellow'; // paused
+    return 'green'; // running
+  };
+
   // Get local IP address for display
   useEffect(() => {
-    // This is a simple way to get the local IP - in a real Raspberry Pi environment,
-    // you might want to use a more robust method
     setIpAddress(window.location.hostname || 'localhost');
   }, []);
 
-  // WebSocket for API communication
+  // Handle page visibility changes to prevent background timing issues
   useEffect(() => {
-    const syncWithNTP = async () => {
-      try {
-        const before = Date.now();
-        const response = await fetch('http://worldtimeapi.org/api/timezone/Etc/UTC');
-        const after = Date.now();
-        const data = await response.json();
-        
-        const serverTime = new Date(data.datetime).getTime();
-        const networkDelay = (after - before) / 2;
-        const clientTime = before + networkDelay;
-        const offset = serverTime - clientTime;
-        
-        setNtpOffset(offset);
-        console.log('NTP sync completed. Offset:', offset, 'ms');
-      } catch (error) {
-        console.log('NTP sync failed, using local time:', error);
-        setNtpOffset(0);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setLastUpdateTime(Date.now());
+        addDebugLog('UI', 'Page hidden', { time: new Date().toISOString() });
+      } else {
+        const hiddenDuration = Date.now() - lastUpdateTime;
+        if (hiddenDuration > 5000) { // If hidden for more than 5 seconds
+          addDebugLog('UI', 'Page visible after extended period', { 
+            hiddenDuration,
+            syncingWithNTP: true
+          });
+          // Force NTP sync when page becomes visible again
+          syncWithNTP();
+        }
       }
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [lastUpdateTime]);
+
+  // WebSocket for API communication
+  useEffect(() => {
+    const isProduction = window.location.protocol === 'http:' || window.location.hostname === 'localhost' || window.location.hostname.includes('raspberrypi');
+    
+    if (isProduction) {
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws`);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          console.log('WebSocket connected for external control');
+          addDebugLog('WEBSOCKET', 'Connected', { endpoint: `${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws` });
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const command = JSON.parse(event.data);
+            addDebugLog('WEBSOCKET', 'Received command', command);
+            handleExternalCommand(command);
+          } catch (error) {
+            console.error('Invalid WebSocket message:', error);
+            addDebugLog('WEBSOCKET', 'Invalid message', { error: error.message });
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.log('WebSocket connection failed:', error);
+          addDebugLog('WEBSOCKET', 'Connection failed', { error });
+        };
+
+        return () => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
+        };
+      } catch (error) {
+        console.log('WebSocket not available in this environment');
+        addDebugLog('WEBSOCKET', 'Not available', { error: error.message });
+      }
+    } else {
+      console.log('WebSocket disabled in development environment');
+      addDebugLog('WEBSOCKET', 'Disabled in development');
+    }
+  }, []);
+
+  const syncWithNTP = async () => {
+    try {
+      const before = Date.now();
+      const response = await fetch(`http://${ntpServer}/api/timezone/Etc/UTC`);
+      const after = Date.now();
+      const data = await response.json();
+      
+      const serverTime = new Date(data.datetime).getTime();
+      const networkDelay = (after - before) / 2;
+      const clientTime = before + networkDelay;
+      const offset = serverTime - clientTime;
+      
+      setNtpOffset(offset);
+      addDebugLog('API', 'NTP sync completed', { offset, server: ntpServer });
+      console.log('NTP sync completed. Offset:', offset, 'ms');
+    } catch (error) {
+      console.log('NTP sync failed, using local time:', error);
+      addDebugLog('API', 'NTP sync failed', { error: error.message, fallback: 'local time' });
+      setNtpOffset(0);
+    }
+  };
+
+  useEffect(() => {
     syncWithNTP();
     const ntpInterval = setInterval(syncWithNTP, 300000);
     return () => clearInterval(ntpInterval);
-  }, []);
+  }, [ntpServer]);
 
   const getNTPTime = () => Date.now() + ntpOffset;
 
@@ -110,48 +206,8 @@ const CountdownClock = () => {
     };
   }, [clockState.isPaused, clockState.pauseStartTime, ntpOffset]);
 
-  useEffect(() => {
-    // Only attempt WebSocket connection in production environment on Raspberry Pi
-    // Skip WebSocket in development to avoid security errors
-    const isProduction = window.location.protocol === 'http:' || window.location.hostname === 'localhost' || window.location.hostname.includes('raspberrypi');
-    
-    if (isProduction) {
-      try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws`);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          console.log('WebSocket connected for external control');
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const command = JSON.parse(event.data);
-            handleExternalCommand(command);
-          } catch (error) {
-            console.error('Invalid WebSocket message:', error);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.log('WebSocket connection failed:', error);
-        };
-
-        return () => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.close();
-          }
-        };
-      } catch (error) {
-        console.log('WebSocket not available in this environment');
-      }
-    } else {
-      console.log('WebSocket disabled in development environment');
-    }
-  }, []);
-
   const handleExternalCommand = (command: any) => {
+    addDebugLog('API', 'External command received', command);
     switch (command.action) {
       case 'start':
         startTimer();
@@ -164,6 +220,9 @@ const CountdownClock = () => {
         break;
       case 'next-round':
         nextRound();
+        break;
+      case 'previous-round':
+        previousRound();
         break;
       case 'set-time':
         if (command.minutes !== undefined && command.seconds !== undefined) {
@@ -183,17 +242,17 @@ const CountdownClock = () => {
 
   const broadcastStatus = () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
+      const status = {
         type: 'status',
         ...clockState,
         totalTime: initialTime,
         ntpTime: getNTPTime()
-      }));
+      };
+      wsRef.current.send(JSON.stringify(status));
+      addDebugLog('WEBSOCKET', 'Status broadcast', status);
     }
   };
 
-  // Broadcast the current status whenever it changes so all
-  // connected display pages stay in sync with the main clock
   useEffect(() => {
     broadcastStatus();
   }, [clockState]);
@@ -201,19 +260,22 @@ const CountdownClock = () => {
   useEffect(() => {
     if (clockState.isRunning && !clockState.isPaused) {
       intervalRef.current = setInterval(() => {
+        setLastUpdateTime(Date.now());
         setClockState(prev => {
           const newSeconds = prev.seconds - 1;
           const newMinutes = newSeconds < 0 ? prev.minutes - 1 : prev.minutes;
           const adjustedSeconds = newSeconds < 0 ? 59 : newSeconds;
 
-          // Update elapsed time
           const totalElapsed = (initialTime.minutes * 60 + initialTime.seconds) - (newMinutes * 60 + adjustedSeconds);
           const elapsedMinutes = Math.floor(totalElapsed / 60);
           const elapsedSeconds = totalElapsed % 60;
 
           if (newMinutes < 0) {
-            // Round completed
             if (prev.currentRound < prev.totalRounds) {
+              addDebugLog('UI', 'Round completed', { 
+                completedRound: prev.currentRound, 
+                nextRound: prev.currentRound + 1 
+              });
               toast({
                 title: `Round ${prev.currentRound} Complete!`,
                 description: `Starting round ${prev.currentRound + 1}`,
@@ -227,7 +289,7 @@ const CountdownClock = () => {
                 elapsedSeconds: 0
               };
             } else {
-              // All rounds completed
+              addDebugLog('UI', 'All rounds completed', { totalRounds: prev.totalRounds });
               toast({
                 title: "All Rounds Complete!",
                 description: "Countdown finished",
@@ -267,6 +329,7 @@ const CountdownClock = () => {
   }, [clockState.isRunning, clockState.isPaused, initialTime, toast]);
 
   const startTimer = () => {
+    addDebugLog('UI', 'Timer started');
     setClockState(prev => {
       let newTotalPausedTime = prev.totalPausedTime;
       if (prev.isPaused && prev.pauseStartTime) {
@@ -285,9 +348,10 @@ const CountdownClock = () => {
   };
 
   const pauseTimer = () => {
+    const wasPaused = clockState.isPaused;
+    addDebugLog('UI', wasPaused ? 'Timer resumed' : 'Timer paused');
     setClockState(prev => {
       if (prev.isPaused) {
-        // Resuming
         let newTotalPausedTime = prev.totalPausedTime;
         if (prev.pauseStartTime) {
           newTotalPausedTime += Math.floor((getNTPTime() - prev.pauseStartTime) / 1000);
@@ -300,7 +364,6 @@ const CountdownClock = () => {
           currentPauseDuration: 0
         };
       } else {
-        // Pausing
         return {
           ...prev,
           isPaused: true,
@@ -308,7 +371,7 @@ const CountdownClock = () => {
         };
       }
     });
-    toast({ title: clockState.isPaused ? "Timer Resumed" : "Timer Paused" });
+    toast({ title: wasPaused ? "Timer Resumed" : "Timer Paused" });
   };
 
   const togglePlayPause = () => {
@@ -320,6 +383,7 @@ const CountdownClock = () => {
   };
 
   const resetTimer = () => {
+    addDebugLog('UI', 'Timer reset', { resetToTime: initialTime });
     setClockState(prev => ({
       ...prev,
       isRunning: false,
@@ -338,6 +402,10 @@ const CountdownClock = () => {
 
   const nextRound = () => {
     if (clockState.currentRound < clockState.totalRounds) {
+      addDebugLog('UI', 'Next round', { 
+        from: clockState.currentRound, 
+        to: clockState.currentRound + 1 
+      });
       setClockState(prev => ({
         ...prev,
         currentRound: prev.currentRound + 1,
@@ -350,6 +418,42 @@ const CountdownClock = () => {
         pauseStartTime: null
       }));
       toast({ title: `Round ${clockState.currentRound + 1} Started` });
+    }
+  };
+
+  const previousRound = () => {
+    if (clockState.currentRound > 1) {
+      addDebugLog('UI', 'Previous round', { 
+        from: clockState.currentRound, 
+        to: clockState.currentRound - 1 
+      });
+      setClockState(prev => ({
+        ...prev,
+        currentRound: prev.currentRound - 1,
+        minutes: initialTime.minutes,
+        seconds: initialTime.seconds,
+        elapsedMinutes: 0,
+        elapsedSeconds: 0,
+        totalPausedTime: 0,
+        currentPauseDuration: 0,
+        pauseStartTime: null
+      }));
+      toast({ title: `Round ${clockState.currentRound - 1} Started` });
+    }
+  };
+
+  const adjustTimeBySeconds = (secondsToAdd: number) => {
+    if (!clockState.isRunning) {
+      const totalSeconds = clockState.minutes * 60 + clockState.seconds + secondsToAdd;
+      const newMinutes = Math.floor(Math.max(0, totalSeconds) / 60);
+      const newSeconds = Math.max(0, totalSeconds) % 60;
+      
+      addDebugLog('UI', 'Time adjusted by seconds', { 
+        adjustment: secondsToAdd,
+        newTime: { minutes: newMinutes, seconds: newSeconds }
+      });
+      
+      setTime(newMinutes, newSeconds);
     }
   };
 
@@ -382,6 +486,10 @@ const CountdownClock = () => {
   };
 
   const applySettings = () => {
+    addDebugLog('UI', 'Settings applied', { 
+      time: { minutes: inputMinutes, seconds: inputSeconds },
+      rounds: inputRounds 
+    });
     setTime(inputMinutes, inputSeconds);
     setRounds(inputRounds);
     setActiveTab('clock');
@@ -408,13 +516,20 @@ const CountdownClock = () => {
     const url = `${window.location.origin}/api${endpoint}`;
     const command = `curl -X POST ${url}`;
     navigator.clipboard.writeText(command);
+    addDebugLog('UI', 'Command copied', { command });
     toast({ title: 'Command Copied', description: command });
   };
+
+  const filteredDebugLog = debugLog.filter(entry => 
+    debugFilter === 'ALL' || entry.source === debugFilter
+  );
+
+  const statusColor = getStatusColor();
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4 bg-gray-800 border-gray-700">
+        <TabsList className="grid w-full grid-cols-4 mb-4 bg-gray-800 border-gray-700">
           <TabsTrigger value="clock" className="text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
           <TabsTrigger value="settings" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Settings className="w-5 h-5 mr-2" />
@@ -424,16 +539,19 @@ const CountdownClock = () => {
             <Info className="w-5 h-5 mr-2" />
             API Info
           </TabsTrigger>
+          <TabsTrigger value="debug" className="text-lg py-3 data-[state=active]:bg-gray-600">
+            <Bug className="w-5 h-5 mr-2" />
+            Debug
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="clock" className="space-y-4 p-4">
-          {/* Main Timer Card - Inspired by the green UI design */}
-          <div className="bg-black rounded-3xl p-8 border-4 border-green-500 relative overflow-hidden">
-            {/* Elapsed Time Header with Green Accent */}
-            <div className="absolute top-0 left-0 right-0 bg-green-500 p-4">
+          <div className={`bg-black rounded-3xl p-8 border-4 border-${statusColor}-500 relative overflow-hidden`}>
+            {/* Elapsed Time Header */}
+            <div className={`absolute top-0 left-0 right-0 bg-${statusColor}-500 p-4`}>
               <div className="flex items-center justify-center gap-4 text-black text-2xl font-bold">
                 <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <div className={`w-4 h-4 bg-${statusColor}-500 rounded-full`}></div>
                 </div>
                 <span>ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
               </div>
@@ -448,16 +566,8 @@ const CountdownClock = () => {
               </div>
             </div>
 
-            {/* Status Bar with Green Theme */}
-            <div
-              className={`${
-                clockState.isPaused
-                  ? 'bg-yellow-500'
-                  : clockState.isRunning
-                  ? 'bg-green-500'
-                  : 'bg-gray-500'
-              } rounded-xl p-8 mb-6`}
-            >
+            {/* Status Bar */}
+            <div className={`bg-${statusColor}-500 rounded-xl p-8 mb-6`}>
               <div className="flex items-center justify-center gap-4 text-black text-4xl font-bold">
                 <div className="flex items-center gap-3">
                   {clockState.isRunning && !clockState.isPaused ? (
@@ -488,27 +598,39 @@ const CountdownClock = () => {
               </div>
             </div>
 
-            {/* Control Buttons in Gray with Rounded Corners */}
-            <div className="grid grid-cols-5 gap-4">
+            {/* Control Buttons */}
+            <div className="grid grid-cols-7 gap-4">
+              {/* Time Adjustment Group */}
+              <div className="col-span-2 flex gap-2">
+                <Button
+                  onClick={() => adjustTimeBySeconds(-1)}
+                  disabled={clockState.isRunning}
+                  className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl text-3xl font-bold flex-1"
+                >
+                  <Minus className="w-8 h-8" />
+                </Button>
+                <Button
+                  onClick={() => adjustTimeBySeconds(1)}
+                  disabled={clockState.isRunning}
+                  className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl text-3xl font-bold flex-1"
+                >
+                  <Plus className="w-8 h-8" />
+                </Button>
+              </div>
+
+              {/* Round Controls */}
               <Button
-                onClick={() => setTime(Math.max(0, clockState.minutes - 1), clockState.seconds)}
-                disabled={clockState.isRunning}
-                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl text-3xl font-bold"
+                onClick={previousRound}
+                disabled={clockState.currentRound <= 1}
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
               >
-                +
-              </Button>
-              
-              <Button
-                onClick={() => setTime(Math.min(59, clockState.minutes + 1), clockState.seconds)}
-                disabled={clockState.isRunning}
-                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl text-3xl font-bold"
-              >
-                -
+                <SkipBack className="w-10 h-10" />
               </Button>
 
+              {/* Play/Pause Button - Wider */}
               <Button
                 onClick={togglePlayPause}
-                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl col-span-2"
               >
                 {clockState.isRunning && !clockState.isPaused ? (
                   <div className="flex gap-2">
@@ -521,18 +643,19 @@ const CountdownClock = () => {
               </Button>
 
               <Button
-                onClick={resetTimer}
-                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
-              >
-                <div className="w-8 h-8 bg-black rounded-sm"></div>
-              </Button>
-
-              <Button
                 onClick={nextRound}
                 disabled={clockState.currentRound >= clockState.totalRounds}
                 className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
               >
-                <RotateCcw className="w-10 h-10" />
+                <SkipForward className="w-10 h-10" />
+              </Button>
+
+              {/* Reset Button - Smaller */}
+              <Button
+                onClick={resetTimer}
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
+              >
+                <div className="w-6 h-6 bg-black rounded-sm"></div>
               </Button>
             </div>
 
@@ -563,7 +686,7 @@ const CountdownClock = () => {
                     max="59"
                     value={inputMinutes}
                     onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                    className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
+                    className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
                   />
                   <div className="flex gap-4 mt-4">
                     <Button
@@ -591,8 +714,7 @@ const CountdownClock = () => {
                     max="59"
                     value={inputSeconds}
                     onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
-
+                    className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
                   />
                   <div className="flex gap-4 mt-4">
                     <Button
@@ -620,8 +742,7 @@ className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
                     max="15"
                     value={inputRounds}
                     onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
-
+                    className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
                   />
                   <div className="flex gap-4 mt-4">
                     <Button
@@ -638,6 +759,15 @@ className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
                     >
                       <Plus className="w-10 h-10" />
                     </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="text-white">
+                  <label className="block text-xl font-medium mb-2">NTP Server</label>
+                  <div className="text-lg text-gray-300 bg-gray-900 px-4 py-2 rounded">
+                    {ntpServer}
                   </div>
                 </div>
               </div>
@@ -713,6 +843,15 @@ className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
                         <Copy className="w-5 h-5 text-white" />
                       </Button>
                     </div>
+                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                      <div>
+                        <code className="text-purple-300">POST /previous-round</code>
+                        <p className="text-gray-300 mt-1">Go to previous round</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/previous-round')}>
+                        <Copy className="w-5 h-5 text-white" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -765,6 +904,80 @@ className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
                     </ul>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="debug" className="space-y-6">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-2xl text-white">Debug Log</CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  variant={debugFilter === 'ALL' ? 'default' : 'outline'}
+                  onClick={() => setDebugFilter('ALL')}
+                  className="text-white"
+                >
+                  All
+                </Button>
+                <Button
+                  variant={debugFilter === 'UI' ? 'default' : 'outline'}
+                  onClick={() => setDebugFilter('UI')}
+                  className="text-white"
+                >
+                  UI
+                </Button>
+                <Button
+                  variant={debugFilter === 'API' ? 'default' : 'outline'}
+                  onClick={() => setDebugFilter('API')}
+                  className="text-white"
+                >
+                  API
+                </Button>
+                <Button
+                  variant={debugFilter === 'WEBSOCKET' ? 'default' : 'outline'}
+                  onClick={() => setDebugFilter('WEBSOCKET')}
+                  className="text-white"
+                >
+                  WebSocket
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setDebugLog([])}
+                  className="text-white ml-4"
+                >
+                  Clear Log
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-96 overflow-y-auto space-y-2">
+                {filteredDebugLog.map((entry, index) => (
+                  <div key={index} className="bg-gray-900 p-3 rounded text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-gray-400">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        entry.source === 'UI' ? 'bg-blue-600' :
+                        entry.source === 'API' ? 'bg-green-600' :
+                        'bg-purple-600'
+                      }`}>
+                        {entry.source}
+                      </span>
+                      <span className="text-white font-medium">{entry.action}</span>
+                    </div>
+                    {entry.details && (
+                      <pre className="text-gray-300 text-xs overflow-x-auto">
+                        {JSON.stringify(entry.details, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                ))}
+                {filteredDebugLog.length === 0 && (
+                  <div className="text-gray-400 text-center py-8">
+                    No debug entries found
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

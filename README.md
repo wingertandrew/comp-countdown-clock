@@ -35,11 +35,14 @@ The application will be available at `http://localhost:8080`
 2. The "UFC Sans" typeface is loaded automatically. You can also install it system wide if desired.
 3. Run the steps in **Quick Start** above. The Vite dev server works the same on macOS.
 
+### Linting & Tests
+Run `npm run lint` to check code style. Execute `npm test` to run unit tests.
+
 ## Usage
 
 ### Touch Interface
 1. **Clock Tab**: Main countdown display with large timer and controls
-2. **Settings Tab**: Configure timer duration and number of rounds
+2. **Settings Tab**: Configure timer duration, number of rounds, and NTP server
 3. **API Info Tab**: Complete documentation for external control
 
 ### Controls
@@ -65,6 +68,9 @@ curl -X POST http://localhost:8080/api/reset
 
 # Next round
 curl -X POST http://localhost:8080/api/next-round
+
+# Previous round
+curl -X POST http://localhost:8080/api/previous-round
 ```
 
 ### Configuration
@@ -101,7 +107,7 @@ Bitfocus Companion is free control software for the Elgato Stream Deck. Use it t
 7. Keep the port `8080` unless you changed it in `server.js`.
 8. Test each button in Companion's emulator before deploying.
 
-For best results, create separate buttons for `start`, `pause`, `reset`, and `next-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
+For best results, create separate buttons for `start`, `pause`, `reset`, `next-round`, and `previous-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
 
 You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/api/status` every second and show the current `minutes`, `seconds`, or `round` fields directly on your Stream Deck keys. Combine feedback variables with button styles to change text or colors as the timer updates.
 
@@ -111,6 +117,7 @@ You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/ap
 - Button 2: Pause Timer (POST /api/pause)
 - Button 3: Reset Timer (POST /api/reset)
 - Button 4: Next Round (POST /api/next-round)
+- Button 5: Previous Round (POST /api/previous-round)
 
 ## Technical Implementation
 
@@ -140,6 +147,10 @@ The application supports real-time communication via WebSocket:
 - Modify timer font size in `CountdownClock.tsx`
 - Adjust color schemes in the component styles
 - Configure touch target sizes for different screen sizes
+
+### Time Sync
+- Set the NTP server address in the Settings tab (defaults to `worldtimeapi.org`).
+- Time is fetched securely over HTTPS.
 
 ### API Extensions
 - Add authentication for security

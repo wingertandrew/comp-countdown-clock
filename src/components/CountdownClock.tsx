@@ -154,7 +154,7 @@ const CountdownClock = () => {
   const syncWithNTP = async () => {
     try {
       const before = Date.now();
-      const response = await fetch(`http://${ntpServer}/api/timezone/Etc/UTC`);
+      const response = await fetch(`https://${ntpServer}/api/timezone/Etc/UTC`);
       const after = Date.now();
       const data = await response.json();
       
@@ -766,9 +766,12 @@ const CountdownClock = () => {
               <div className="space-y-4">
                 <div className="text-white">
                   <label className="block text-xl font-medium mb-2">NTP Server</label>
-                  <div className="text-lg text-gray-300 bg-gray-900 px-4 py-2 rounded">
-                    {ntpServer}
-                  </div>
+                  <Input
+                    type="text"
+                    value={ntpServer}
+                    onChange={(e) => setNtpServer(e.target.value)}
+                    className="text-lg bg-gray-700 border-gray-600 text-white"
+                  />
                 </div>
               </div>
               

@@ -1,13 +1,17 @@
-const express = require('express');
-const path = require('path');
-const http = require('http');
-const WebSocket = require('ws');
+import express from 'express';
+import path from 'path';
+import http from 'http';
+import WebSocket, { WebSocketServer } from 'ws';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 app.use(express.json());
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
 
 let lastStatus = null;
 
@@ -78,10 +82,10 @@ app.get('/api/status', (_req, res) => {
   }
 });
 
-const dist = path.join(__dirname, 'dist');
+const dist = join(__dirname, 'dist');
 app.use(express.static(dist));
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(dist, 'index.html'));
+  res.sendFile(join(dist, 'index.html'));
 });
 
 const PORT = process.env.PORT || 8080;

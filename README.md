@@ -32,7 +32,7 @@ The application will be available at `http://localhost:8080`
 
 ### Development on macOS
 1. Install Node.js via [Homebrew](https://brew.sh/) with `brew install node` or download it from the official website.
-2. (Optional) Install the "UFC Sans" font so the app uses it by default.
+2. The "UFC Sans" typeface is loaded automatically. You can also install it system wide if desired.
 3. Run the steps in **Quick Start** above. The Vite dev server works the same on macOS.
 
 ## Usage
@@ -91,6 +91,7 @@ curl http://localhost:8080/api/status
 Bitfocus Companion is free control software for the Elgato Stream Deck. Use it to trigger the HTTP API from your Stream Deck or any network-connected device.
 
 ### Using Companion
+
 1. Install [Bitfocus Companion](https://bitfocus.io/companion) and open the web interface.
 2. In the **Connections** tab add the **HTTP Request** module.
 3. Create a button and add an **HTTP Request** action.
@@ -100,10 +101,10 @@ Bitfocus Companion is free control software for the Elgato Stream Deck. Use it t
 7. Keep the port `8080` unless you changed it in `server.js`.
 8. Test each button in Companion's emulator before deploying.
 
-For best results create separate buttons for `start`, `pause`, `reset` and `next-round`.  Companion sends the HTTP calls directly to the application and the connected clients stay in sync through WebSocket.
+For best results, create separate buttons for `start`, `pause`, `reset`, and `next-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
 
-You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/api/status` every second and show the current `minutes`, `seconds` or `round` fields directly on your Stream Deck keys.
-Combine feedback variables with button styles to change text or colors as the timer updates.
+You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/api/status` every second and show the current `minutes`, `seconds`, or `round` fields directly on your Stream Deck keys. Combine feedback variables with button styles to change text or colors as the timer updates.
+
 
 ### Example Stream Deck Layout
 - Button 1: Start Timer (POST /api/start)

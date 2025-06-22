@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -190,6 +191,12 @@ const CountdownClock = () => {
       }));
     }
   };
+
+  // Broadcast the current status whenever it changes so all
+  // connected display pages stay in sync with the main clock
+  useEffect(() => {
+    broadcastStatus();
+  }, [clockState]);
 
   useEffect(() => {
     if (clockState.isRunning && !clockState.isPaused) {
@@ -420,44 +427,53 @@ const CountdownClock = () => {
         </TabsList>
 
         <TabsContent value="clock" className="space-y-4 p-4">
-          {/* Main Timer Card - Inspired by the uploaded design */}
-          <div className="bg-gray-800 rounded-3xl p-8 border-4 border-gray-600">
-            {/* Elapsed Time Header */}
-            <div className="text-center mb-4">
-              <div className="flex items-center justify-center gap-4 text-white text-xl font-bold mb-2">
-                <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
-                  <div className="w-3 h-3 bg-white rounded-full"></div>
+          {/* Main Timer Card - Inspired by the green UI design */}
+          <div className="bg-black rounded-3xl p-8 border-4 border-green-500 relative overflow-hidden">
+            {/* Elapsed Time Header with Green Accent */}
+            <div className="absolute top-0 left-0 right-0 bg-green-500 p-4">
+              <div className="flex items-center justify-center gap-4 text-black text-2xl font-bold">
+                <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
                 </div>
                 <span>ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
               </div>
             </div>
 
             {/* Main Timer Display */}
-            <div className="bg-black rounded-2xl p-12 mb-6">
+            <div className="mt-20 mb-8">
               <div className="text-center">
-                <div className="text-[12rem] md:text-[16rem] font-bold tracking-wider text-white leading-none font-mono">
+                <div className="text-[12rem] md:text-[20rem] font-bold tracking-wider text-white leading-none font-mono">
                   {formatTime(clockState.minutes, clockState.seconds)}
                 </div>
               </div>
             </div>
 
-            {/* Status Bar */}
+            {/* Status Bar with Green Theme */}
             <div
               className={`${
                 clockState.isPaused
-                  ? 'bg-yellow-300'
+                  ? 'bg-yellow-500'
                   : clockState.isRunning
-                  ? 'bg-green-300'
-                  : 'bg-gray-300'
-              } rounded-xl p-6 mb-4`}
+                  ? 'bg-green-500'
+                  : 'bg-gray-500'
+              } rounded-xl p-8 mb-6`}
             >
-              <div className="flex items-center justify-center gap-4 text-black text-3xl font-bold">
-                <div className="flex items-center gap-2">
-                  <RotateCcw className="w-8 h-8" />
+              <div className="flex items-center justify-center gap-4 text-black text-4xl font-bold">
+                <div className="flex items-center gap-3">
+                  {clockState.isRunning && !clockState.isPaused ? (
+                    <div className="w-0 h-0 border-l-[20px] border-l-black border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent"></div>
+                  ) : clockState.isPaused ? (
+                    <div className="flex gap-2">
+                      <div className="w-3 h-8 bg-black"></div>
+                      <div className="w-3 h-8 bg-black"></div>
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 bg-black"></div>
+                  )}
                   <span>{getStatusText()}</span>
                 </div>
                 {clockState.isPaused && (
-                  <span className="text-yellow-600">
+                  <span className="text-orange-600">
                     - {formatDuration(clockState.currentPauseDuration)}
                   </span>
                 )}
@@ -465,63 +481,66 @@ const CountdownClock = () => {
             </div>
 
             {/* IP Address */}
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 text-white text-lg">
-                <div className="w-3 h-3 bg-white rounded-full"></div>
+            <div className="mb-8">
+              <div className="flex items-center gap-2 text-white text-xl">
+                <div className="w-4 h-4 bg-white rounded-full"></div>
                 <span>{ipAddress}</span>
               </div>
             </div>
 
-            {/* Control Buttons */}
+            {/* Control Buttons in Gray with Rounded Corners */}
             <div className="grid grid-cols-5 gap-4">
               <Button
                 onClick={() => setTime(Math.max(0, clockState.minutes - 1), clockState.seconds)}
                 disabled={clockState.isRunning}
-                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl text-3xl font-bold"
               >
-                <Plus className="w-8 h-8" />
+                +
               </Button>
               
               <Button
                 onClick={() => setTime(Math.min(59, clockState.minutes + 1), clockState.seconds)}
                 disabled={clockState.isRunning}
-                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl text-3xl font-bold"
               >
-                <Minus className="w-8 h-8" />
+                -
               </Button>
 
               <Button
                 onClick={togglePlayPause}
-                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl text-4xl"
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
               >
                 {clockState.isRunning && !clockState.isPaused ? (
-                  <div className="w-6 h-8 bg-black"></div>
+                  <div className="flex gap-2">
+                    <div className="w-4 h-12 bg-black"></div>
+                    <div className="w-4 h-12 bg-black"></div>
+                  </div>
                 ) : (
-                  <Play className="w-8 h-8 fill-black" />
+                  <div className="w-0 h-0 border-l-[24px] border-l-black border-t-[18px] border-t-transparent border-b-[18px] border-b-transparent ml-2"></div>
                 )}
               </Button>
 
               <Button
                 onClick={resetTimer}
-                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
               >
-                <div className="w-6 h-6 bg-black rounded-sm"></div>
+                <div className="w-8 h-8 bg-black rounded-sm"></div>
               </Button>
 
               <Button
                 onClick={nextRound}
                 disabled={clockState.currentRound >= clockState.totalRounds}
-                className="h-20 bg-gray-600 hover:bg-gray-500 text-black rounded-2xl"
+                className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
               >
-                <RotateCcw className="w-8 h-8" />
+                <RotateCcw className="w-10 h-10" />
               </Button>
             </div>
 
             {/* Round Info */}
-            <div className="text-center mt-6 text-white text-xl">
+            <div className="text-center mt-8 text-white text-2xl">
               Round {clockState.currentRound} of {clockState.totalRounds}
               {clockState.totalPausedTime > 0 && (
-                <div className="text-yellow-400 text-lg mt-2">
+                <div className="text-yellow-400 text-xl mt-2">
                   Total Paused: {formatDuration(clockState.totalPausedTime)}
                 </div>
               )}
@@ -532,90 +551,92 @@ const CountdownClock = () => {
         <TabsContent value="settings" className="space-y-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-2xl text-white">Timer Settings</CardTitle>
+              <CardTitle className="text-3xl text-white">Timer Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex flex-col items-center">
-                  <label className="block text-lg font-medium mb-4 text-white">Minutes</label>
+                  <label className="block text-2xl font-medium mb-4 text-white">Minutes</label>
                   <Input
                     type="number"
                     min="0"
                     max="59"
                     value={inputMinutes}
                     onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                    className="text-7xl h-32 bg-gray-700 border-gray-600 text-center text-white"
+                    className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
                   />
                   <div className="flex gap-4 mt-4">
                     <Button
                       onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))}
                       size="lg"
-                      className="h-16 w-16 text-2xl bg-red-600 hover:bg-red-700"
+                      className="h-20 w-20 text-4xl bg-red-600 hover:bg-red-700"
                     >
-                      <Minus className="w-8 h-8" />
+                      <Minus className="w-10 h-10" />
                     </Button>
                     <Button
                       onClick={() => setInputMinutes(Math.min(59, inputMinutes + 1))}
                       size="lg"
-                      className="h-16 w-16 text-2xl bg-green-600 hover:bg-green-700"
+                      className="h-20 w-20 text-4xl bg-green-600 hover:bg-green-700"
                     >
-                      <Plus className="w-8 h-8" />
+                      <Plus className="w-10 h-10" />
                     </Button>
                   </div>
                 </div>
                 
                 <div className="flex flex-col items-center">
-                  <label className="block text-lg font-medium mb-4 text-white">Seconds</label>
+                  <label className="block text-2xl font-medium mb-4 text-white">Seconds</label>
                   <Input
                     type="number"
                     min="0"
                     max="59"
                     value={inputSeconds}
                     onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-                    className="text-7xl h-32 bg-gray-700 border-gray-600 text-center text-white"
+className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
+
                   />
                   <div className="flex gap-4 mt-4">
                     <Button
                       onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))}
                       size="lg"
-                      className="h-16 w-16 text-2xl bg-red-600 hover:bg-red-700"
+                      className="h-20 w-20 text-4xl bg-red-600 hover:bg-red-700"
                     >
-                      <Minus className="w-8 h-8" />
+                      <Minus className="w-10 h-10" />
                     </Button>
                     <Button
                       onClick={() => setInputSeconds(Math.min(59, inputSeconds + 1))}
                       size="lg"
-                      className="h-16 w-16 text-2xl bg-green-600 hover:bg-green-700"
+                      className="h-20 w-20 text-4xl bg-green-600 hover:bg-green-700"
                     >
-                      <Plus className="w-8 h-8" />
+                      <Plus className="w-10 h-10" />
                     </Button>
                   </div>
                 </div>
                 
                 <div className="flex flex-col items-center">
-                  <label className="block text-lg font-medium mb-4 text-white">Rounds (1-15)</label>
+                  <label className="block text-2xl font-medium mb-4 text-white">Rounds (1-15)</label>
                   <Input
                     type="number"
                     min="1"
                     max="15"
                     value={inputRounds}
                     onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-                    className="text-7xl h-32 bg-gray-700 border-gray-600 text-center text-white"
+className="text-8xl h-40 bg-gray-700 border-gray-600 text-center text-white"
+
                   />
                   <div className="flex gap-4 mt-4">
                     <Button
                       onClick={() => setInputRounds(Math.max(1, inputRounds - 1))}
                       size="lg"
-                      className="h-16 w-16 text-2xl bg-red-600 hover:bg-red-700"
+                      className="h-20 w-20 text-4xl bg-red-600 hover:bg-red-700"
                     >
-                      <Minus className="w-8 h-8" />
+                      <Minus className="w-10 h-10" />
                     </Button>
                     <Button
                       onClick={() => setInputRounds(Math.min(15, inputRounds + 1))}
                       size="lg"
-                      className="h-16 w-16 text-2xl bg-green-600 hover:bg-green-700"
+                      className="h-20 w-20 text-4xl bg-green-600 hover:bg-green-700"
                     >
-                      <Plus className="w-8 h-8" />
+                      <Plus className="w-10 h-10" />
                     </Button>
                   </div>
                 </div>
@@ -624,7 +645,7 @@ const CountdownClock = () => {
               <Button
                 onClick={applySettings}
                 size="lg"
-                className="w-full h-16 text-xl bg-green-600 hover:bg-green-700"
+                className="w-full h-20 text-2xl bg-green-600 hover:bg-green-700"
               >
                 Apply Settings
               </Button>

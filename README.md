@@ -32,7 +32,7 @@ The application will be available at `http://localhost:8080`
 
 ### Development on macOS
 1. Install Node.js via [Homebrew](https://brew.sh/) with `brew install node` or download it from the official website.
-2. The "UFC Sans" typeface is loaded automatically. You can also install it system wide if desired.
+2. (Optional) Install the "UFC Sans" font so the app uses it by default.
 3. Run the steps in **Quick Start** above. The Vite dev server works the same on macOS.
 
 ## Usage

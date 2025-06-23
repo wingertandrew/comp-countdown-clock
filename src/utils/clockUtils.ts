@@ -10,9 +10,9 @@ export const formatDuration = (totalSeconds: number) => {
 };
 
 export const getStatusColor = (isRunning: boolean, isPaused: boolean) => {
-  if (!isRunning) return 'red'; // stopped
-  if (isPaused) return 'yellow'; // paused
-  return 'green'; // running
+  if (!isRunning) return '#ef4444'; // red-500 for stopped
+  if (isPaused) return '#eab308'; // yellow-500 for paused
+  return '#22c55e'; // green-500 for running
 };
 
 export const getStatusText = (isRunning: boolean, isPaused: boolean) => {

@@ -27,12 +27,18 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
   const statusColor = getStatusColor(clockState.isRunning, clockState.isPaused);
 
   return (
-    <div className={`bg-black rounded-3xl p-8 border-4 border-${statusColor}-500 relative overflow-hidden`}>
+    <div
+      className="bg-black rounded-3xl p-8 border-4 relative overflow-hidden"
+      style={{ borderColor: statusColor }}
+    >
       {/* Elapsed Time Header */}
-      <div className={`absolute top-0 left-0 right-0 bg-${statusColor}-500 p-4`}>
+      <div
+        className="absolute top-0 left-0 right-0 p-4"
+        style={{ backgroundColor: statusColor }}
+      >
         <div className="flex items-center justify-center gap-4 text-black text-2xl font-bold">
           <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
-            <div className={`w-4 h-4 bg-${statusColor}-500 rounded-full`}></div>
+            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: statusColor }}></div>
           </div>
           <span>ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
         </div>
@@ -48,7 +54,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
       </div>
 
       {/* Status Bar */}
-      <div className={`bg-${statusColor}-500 rounded-xl p-8 mb-6`}>
+      <div className="rounded-xl p-8 mb-6" style={{ backgroundColor: statusColor }}>
         <div className="flex items-center justify-center gap-4 text-black text-4xl font-bold">
           <div className="flex items-center gap-3">
             {clockState.isRunning && !clockState.isPaused ? (

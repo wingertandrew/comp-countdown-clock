@@ -63,7 +63,7 @@ const DebugTab: React.FC<DebugTabProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="max-h-96 overflow-y-auto space-y-3">
+          <div className="max-h-[75vh] overflow-y-auto space-y-3">
             {filteredDebugLog.map((entry, index) => (
               <div key={index} className="bg-gray-700 p-4 rounded-xl text-lg border border-gray-600">
                 <div className="flex items-center gap-4 mb-3">

@@ -11,6 +11,7 @@ A touch-friendly countdown clock application. Originally built for Raspberry Pi,
 - **Real-Time Updates**: WebSocket support for live status updates
 - **Responsive Design**: Works on various screen sizes
 - **Visual Feedback**: Toast notifications and clear status indicators
+- **Network Time Sync**: Automatically syncs with `time.google.com` for accurate timing
 
 ## Installation & Setup
 
@@ -84,6 +85,12 @@ curl -X POST http://localhost:8080/api/set-rounds \
 ```bash
 # Get current status
 curl http://localhost:8080/api/status
+```
+
+### NTP Sync
+```bash
+# Sync time using the default server (time.google.com)
+curl http://localhost:8080/api/ntp-sync
 ```
 
 ## Stream Deck Integration

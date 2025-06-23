@@ -220,6 +220,12 @@ const CountdownClock = () => {
 
   const getNTPTime = () => Date.now() + ntpOffset;
 
+  const getNextSyncMinutes = () => {
+    if (!ntpStatus.lastSync) return 'N/A';
+    const diff = ntpStatus.lastSync.getTime() + 1800000 - Date.now();
+    return Math.max(0, Math.ceil(diff / 60000));
+  };
+
   // Track pause duration
   useEffect(() => {
     if (clockState.isPaused && clockState.pauseStartTime) {
@@ -612,7 +618,7 @@ const CountdownClock = () => {
               {/* Main Timer Display - Much Larger */}
               <div className="flex-1 flex items-center justify-center mt-8 sm:mt-12 md:mt-16 lg:mt-20 mb-2 sm:mb-4 md:mb-6 lg:mb-8">
                 <div className="text-center w-full">
-                  <div className="text-6xl sm:text-8xl md:text-[8rem] lg:text-[12rem] xl:text-[16rem] 2xl:text-[20rem] font-bold tracking-wider text-white leading-[0.8] font-mono break-all">
+                  <div className="responsive-text font-bold tracking-wider text-white leading-[0.8] font-mono break-all">
                     {formatTime(clockState.minutes, clockState.seconds)}
                   </div>
                 </div>
@@ -657,16 +663,16 @@ const CountdownClock = () => {
                   <Button
                     onClick={() => adjustTimeBySeconds(-1)}
                     disabled={clockState.isRunning}
-                    className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl text-sm sm:text-lg md:text-2xl lg:text-3xl font-bold flex-1"
+                    className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold flex-1"
                   >
-                    <Minus className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6 lg:w-8 lg:h-8" />
+                    <Minus className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10" />
                   </Button>
                   <Button
                     onClick={() => adjustTimeBySeconds(1)}
                     disabled={clockState.isRunning}
-                    className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl text-sm sm:text-lg md:text-2xl lg:text-3xl font-bold flex-1"
+                    className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold flex-1"
                   >
-                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6 lg:w-8 lg:h-8" />
+                    <Plus className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10" />
                   </Button>
                 </div>
 
@@ -739,22 +745,22 @@ const CountdownClock = () => {
                         max="59"
                         value={inputMinutes}
                         onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                        className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
+                        className="responsive-text h-60 bg-gray-700 border-gray-600 text-center text-white"
                       />
                       <div className="flex gap-4 mt-4">
                         <Button
                           onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))}
                           size="lg"
-                          className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 flex items-center justify-center"
+                        className="h-28 w-28 text-7xl bg-red-600 hover:bg-red-700 flex items-center justify-center"
                         >
-                          <Minus className="w-16 h-16" />
+                          <Minus className="w-20 h-20" />
                         </Button>
                         <Button
                           onClick={() => setInputMinutes(Math.min(59, inputMinutes + 1))}
                           size="lg"
-                          className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 flex items-center justify-center"
+                        className="h-28 w-28 text-7xl bg-green-600 hover:bg-green-700 flex items-center justify-center"
                         >
-                          <Plus className="w-16 h-16" />
+                          <Plus className="w-20 h-20" />
                         </Button>
                       </div>
                     </div>
@@ -767,22 +773,22 @@ const CountdownClock = () => {
                         max="59"
                         value={inputSeconds}
                         onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-                        className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
+                        className="responsive-text h-60 bg-gray-700 border-gray-600 text-center text-white"
                       />
                       <div className="flex gap-4 mt-4">
                         <Button
                           onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))}
                           size="lg"
-                          className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 flex items-center justify-center"
+                        className="h-28 w-28 text-7xl bg-red-600 hover:bg-red-700 flex items-center justify-center"
                         >
-                          <Minus className="w-16 h-16" />
+                          <Minus className="w-20 h-20" />
                         </Button>
                         <Button
                           onClick={() => setInputSeconds(Math.min(59, inputSeconds + 1))}
                           size="lg"
-                          className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 flex items-center justify-center"
+                        className="h-28 w-28 text-7xl bg-green-600 hover:bg-green-700 flex items-center justify-center"
                         >
-                          <Plus className="w-16 h-16" />
+                          <Plus className="w-20 h-20" />
                         </Button>
                       </div>
                     </div>
@@ -795,22 +801,22 @@ const CountdownClock = () => {
                         max="15"
                         value={inputRounds}
                         onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-                        className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
+                        className="responsive-text h-60 bg-gray-700 border-gray-600 text-center text-white"
                       />
                       <div className="flex gap-4 mt-4">
                         <Button
                           onClick={() => setInputRounds(Math.max(1, inputRounds - 1))}
                           size="lg"
-                          className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 flex items-center justify-center"
+                        className="h-28 w-28 text-7xl bg-red-600 hover:bg-red-700 flex items-center justify-center"
                         >
-                          <Minus className="w-16 h-16" />
+                          <Minus className="w-20 h-20" />
                         </Button>
                         <Button
                           onClick={() => setInputRounds(Math.min(15, inputRounds + 1))}
                           size="lg"
-                          className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 flex items-center justify-center"
+                        className="h-28 w-28 text-7xl bg-green-600 hover:bg-green-700 flex items-center justify-center"
                         >
-                          <Plus className="w-16 h-16" />
+                          <Plus className="w-20 h-20" />
                         </Button>
                       </div>
                     </div>
@@ -857,7 +863,7 @@ const CountdownClock = () => {
                           Drift: {ntpStatus.drift}ms
                         </div>
                         <div className="text-sm text-gray-300">
-                          Next Sync: 30min
+                          Next Sync: {getNextSyncMinutes()}m
                         </div>
                       </div>
                     </div>

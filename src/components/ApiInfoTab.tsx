@@ -1,0 +1,163 @@
+
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Copy } from 'lucide-react';
+import { copyCommand } from '@/utils/clockUtils';
+
+interface ApiInfoTabProps {
+  ipAddress: string;
+  onCommandCopy: (command: string) => void;
+}
+
+const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => {
+  const handleCopyCommand = async (endpoint: string) => {
+    await copyCommand(endpoint, onCommandCopy);
+  };
+
+  return (
+    <div className="space-y-6 p-4 min-h-screen bg-gray-900">
+      <Card className="bg-gray-800 border-gray-600">
+        <CardHeader>
+          <CardTitle className="text-3xl text-white mb-4">HTTP API Documentation</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-xl text-gray-300 bg-gray-700 p-6 rounded-xl">
+            <div className="text-2xl font-bold text-white mb-4">Server accessible at:</div>
+            <ul className="list-disc list-inside mt-4 space-y-3">
+              <li>
+                <code className="bg-gray-900 px-4 py-2 rounded text-lg text-green-400">
+                  http://{ipAddress}:{window.location.port || 8080}
+                </code>
+              </li>
+              {ipAddress !== 'localhost' && (
+                <li>
+                  <code className="bg-gray-900 px-4 py-2 rounded text-lg text-green-400">
+                    http://localhost:{window.location.port || 8080}
+                  </code>
+                </li>
+              )}
+            </ul>
+          </div>
+          
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-2xl font-bold text-green-400 mb-6">Timer Controls</h3>
+              <div className="space-y-4 text-lg">
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-green-300 font-bold">POST /start</code>
+                    <p className="text-gray-300 mt-2 text-lg">Start the countdown timer</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/start')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-yellow-300 font-bold">POST /pause</code>
+                    <p className="text-gray-300 mt-2 text-lg">Pause/Resume the timer</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/pause')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-red-300 font-bold">POST /reset</code>
+                    <p className="text-gray-300 mt-2 text-lg">Reset timer to initial settings</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/reset')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-blue-300 font-bold">POST /next-round</code>
+                    <p className="text-gray-300 mt-2 text-lg">Skip to next round</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/next-round')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-purple-300 font-bold">POST /previous-round</code>
+                    <p className="text-gray-300 mt-2 text-lg">Go to previous round</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/previous-round')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-bold text-blue-400 mb-6">Configuration</h3>
+              <div className="space-y-4 text-lg">
+                <div className="bg-gray-700 p-6 rounded-xl">
+                  <code className="text-2xl text-purple-300 font-bold">POST /set-time</code>
+                  <p className="text-gray-300 mt-2">Body: <code className="bg-gray-900 px-2 py-1 rounded">{"{"}"minutes": 5, "seconds": 30{"}"}</code></p>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl">
+                  <code className="text-2xl text-purple-300 font-bold">POST /set-rounds</code>
+                  <p className="text-gray-300 mt-2">Body: <code className="bg-gray-900 px-2 py-1 rounded">{"{"}"rounds": 10{"}"}</code></p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-bold text-cyan-400 mb-6">Status & Display Pages</h3>
+              <div className="space-y-4 text-lg">
+                <div className="bg-gray-700 p-6 rounded-xl">
+                  <code className="text-2xl text-cyan-300 font-bold">GET /status</code>
+                  <p className="text-gray-300 mt-2">Get current timer state and settings</p>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl">
+                  <a href="/clockpretty" target="_blank" className="text-2xl text-cyan-300 underline font-bold">
+                    <code>GET /clockpretty</code>
+                  </a>
+                  <p className="text-gray-300 mt-2">Beautiful dark dashboard display (read-only)</p>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl">
+                  <a href="/clockarena" target="_blank" className="text-2xl text-cyan-300 underline font-bold">
+                    <code>GET /clockarena</code>
+                  </a>
+                  <p className="text-gray-300 mt-2">Compact arena-style countdown display</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-bold text-orange-400 mb-6">Bitfocus Companion Integration</h3>
+              <div className="bg-gray-700 p-6 rounded-xl text-lg">
+                <p className="text-gray-300 mb-4 text-xl">For Bitfocus Companion with Stream Deck:</p>
+                <ul className="list-disc list-inside space-y-3 text-gray-300">
+                  <li className="text-lg">Use "Generic HTTP" module in Companion</li>
+                  <li className="text-lg">Set target IP to your Pi's address: <code className="bg-gray-900 px-2 py-1 rounded">{ipAddress}</code></li>
+                  <li className="text-lg">Use port: <code className="bg-gray-900 px-2 py-1 rounded">{window.location.port || 8080}</code></li>
+                  <li className="text-lg">Set method to POST for timer controls</li>
+                  <li className="text-lg">Use GET for status checks and feedback</li>
+                  <li className="text-lg">Enable "Parse Variables in HTTP Data" for dynamic content</li>
+                  <li className="text-lg">NTP synchronized for frame-accurate timing</li>
+                </ul>
+                
+                <div className="mt-6 p-4 bg-gray-800 rounded-lg">
+                  <h4 className="text-xl font-bold text-white mb-3">Example Companion Setup:</h4>
+                  <div className="space-y-2 text-gray-300">
+                    <div><strong>Base URL:</strong> <code className="bg-gray-900 px-2 py-1 rounded">http://{ipAddress}:{window.location.port || 8080}</code></div>
+                    <div><strong>Start Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/start</code></div>
+                    <div><strong>Pause Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/pause</code></div>
+                    <div><strong>Reset Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset</code></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default ApiInfoTab;

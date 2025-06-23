@@ -33,7 +33,7 @@ const CountdownClock = () => {
   const [activeTab, setActiveTab] = useState('clock');
   const [ntpOffset, setNtpOffset] = useState(0);
   const [ipAddress, setIpAddress] = useState('');
-  const [ntpServer, setNtpServer] = useState('worldtimeapi.org');
+  const [ntpServer, setNtpServer] = useState('time.google.com');
   const [ntpDrift, setNtpDrift] = useState(0);
   const [lastNtpSync, setLastNtpSync] = useState('');
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());

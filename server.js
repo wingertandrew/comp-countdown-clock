@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import http from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
+import dgram from 'dgram';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +16,40 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 let lastStatus = null;
+
+function queryNtpTime(server) {
+  return new Promise((resolve, reject) => {
+    const client = dgram.createSocket('udp4');
+    const packet = Buffer.alloc(48);
+    packet[0] = 0x1b; // NTP client request
+
+    const timeout = setTimeout(() => {
+      client.close();
+      reject(new Error('NTP request timed out'));
+    }, 10000);
+
+    client.once('error', err => {
+      clearTimeout(timeout);
+      client.close();
+      reject(err);
+    });
+
+    client.once('message', msg => {
+      clearTimeout(timeout);
+      client.close();
+      const seconds = msg.readUInt32BE(40) - 2208988800;
+      resolve(seconds * 1000);
+    });
+
+    client.send(packet, 0, packet.length, 123, server, err => {
+      if (err) {
+        clearTimeout(timeout);
+        client.close();
+        reject(err);
+      }
+    });
+  });
+}
 
 function broadcast(data) {
   const message = JSON.stringify(data);
@@ -78,6 +113,22 @@ app.post('/api/set-rounds', (req, res) => {
   const { rounds } = req.body;
   broadcast({ action: 'set-rounds', rounds });
   res.json({ success: true });
+});
+
+app.get('/api/ntp-sync', async (req, res) => {
+  const ntpServer = req.query.server || 'time.google.com';
+  try {
+    const before = Date.now();
+    const serverTime = await queryNtpTime(ntpServer);
+    const after = Date.now();
+    const networkDelay = (after - before) / 2;
+    const clientTime = before + networkDelay;
+    const offset = serverTime - clientTime;
+    res.json({ offset, lastSync: new Date().toISOString() });
+  } catch (err) {
+    console.error('NTP sync failed:', err);
+    res.status(500).json({ error: 'NTP sync failed' });
+  }
 });
 
 app.get('/api/status', (_req, res) => {

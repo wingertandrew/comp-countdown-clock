@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Pause, RotateCcw, SkipForward, SkipBack, Settings, Info, Plus, Minus, Copy, Bug } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Settings, Info, Plus, Minus, Copy, Bug, Wifi, WifiOff, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ClockState {
@@ -50,6 +50,8 @@ const CountdownClock = () => {
   const [ntpOffset, setNtpOffset] = useState(0);
   const [ipAddress, setIpAddress] = useState('');
   const [ntpServer, setNtpServer] = useState('worldtimeapi.org');
+  const [ntpDrift, setNtpDrift] = useState(0);
+  const [lastNtpSync, setLastNtpSync] = useState('');
   const [debugLog, setDebugLog] = useState<DebugLogEntry[]>([]);
   const [debugFilter, setDebugFilter] = useState<'ALL' | 'UI' | 'API' | 'WEBSOCKET'>('ALL');
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
@@ -671,111 +673,154 @@ const CountdownClock = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
+        <TabsContent value="settings" className="space-y-6 p-4 min-h-screen bg-gray-900">
+          <Card className="bg-gray-800 border-gray-600">
             <CardHeader>
-              <CardTitle className="text-3xl text-white">Timer Settings</CardTitle>
+              <CardTitle className="text-4xl text-white mb-4">Timer Settings</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <CardContent className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="flex flex-col items-center">
-                  <label className="block text-2xl font-medium mb-4 text-white">Minutes</label>
+                  <label className="block text-3xl font-medium mb-6 text-white">Minutes</label>
                   <Input
                     type="number"
                     min="0"
                     max="59"
                     value={inputMinutes}
                     onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                    className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
+                    className="h-32 bg-gray-700 border-gray-500 text-center text-white text-6xl font-bold rounded-xl"
                   />
-                  <div className="flex gap-4 mt-4">
+                  <div className="flex gap-6 mt-6">
                     <Button
                       onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))}
                       size="lg"
-                      className="h-20 w-20 text-4xl bg-red-600 hover:bg-red-700"
+                      className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 rounded-xl"
                     >
-                      <Minus className="w-10 h-10" />
+                      <Minus className="w-12 h-12" />
                     </Button>
                     <Button
                       onClick={() => setInputMinutes(Math.min(59, inputMinutes + 1))}
                       size="lg"
-                      className="h-20 w-20 text-4xl bg-green-600 hover:bg-green-700"
+                      className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 rounded-xl"
                     >
-                      <Plus className="w-10 h-10" />
+                      <Plus className="w-12 h-12" />
                     </Button>
                   </div>
                 </div>
                 
                 <div className="flex flex-col items-center">
-                  <label className="block text-2xl font-medium mb-4 text-white">Seconds</label>
+                  <label className="block text-3xl font-medium mb-6 text-white">Seconds</label>
                   <Input
                     type="number"
                     min="0"
                     max="59"
                     value={inputSeconds}
                     onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-                    className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
+                    className="h-32 bg-gray-700 border-gray-500 text-center text-white text-6xl font-bold rounded-xl"
                   />
-                  <div className="flex gap-4 mt-4">
+                  <div className="flex gap-6 mt-6">
                     <Button
                       onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))}
                       size="lg"
-                      className="h-20 w-20 text-4xl bg-red-600 hover:bg-red-700"
+                      className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 rounded-xl"
                     >
-                      <Minus className="w-10 h-10" />
+                      <Minus className="w-12 h-12" />
                     </Button>
                     <Button
                       onClick={() => setInputSeconds(Math.min(59, inputSeconds + 1))}
                       size="lg"
-                      className="h-20 w-20 text-4xl bg-green-600 hover:bg-green-700"
+                      className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 rounded-xl"
                     >
-                      <Plus className="w-10 h-10" />
+                      <Plus className="w-12 h-12" />
                     </Button>
                   </div>
                 </div>
                 
                 <div className="flex flex-col items-center">
-                  <label className="block text-2xl font-medium mb-4 text-white">Rounds (1-15)</label>
+                  <label className="block text-3xl font-medium mb-6 text-white">Rounds (1-15)</label>
                   <Input
                     type="number"
                     min="1"
                     max="15"
                     value={inputRounds}
                     onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-                    className="text-12xl h-60 bg-gray-700 border-gray-600 text-center text-white text-8xl"
+                    className="h-32 bg-gray-700 border-gray-500 text-center text-white text-6xl font-bold rounded-xl"
                   />
-                  <div className="flex gap-4 mt-4">
+                  <div className="flex gap-6 mt-6">
                     <Button
                       onClick={() => setInputRounds(Math.max(1, inputRounds - 1))}
                       size="lg"
-                      className="h-20 w-20 text-4xl bg-red-600 hover:bg-red-700"
+                      className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 rounded-xl"
                     >
-                      <Minus className="w-10 h-10" />
+                      <Minus className="w-12 h-12" />
                     </Button>
                     <Button
                       onClick={() => setInputRounds(Math.min(15, inputRounds + 1))}
                       size="lg"
-                      className="h-20 w-20 text-4xl bg-green-600 hover:bg-green-700"
+                      className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 rounded-xl"
                     >
-                      <Plus className="w-10 h-10" />
+                      <Plus className="w-12 h-12" />
                     </Button>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="text-white">
-                  <label className="block text-xl font-medium mb-2">NTP Server</label>
-                  <div className="text-lg text-gray-300 bg-gray-900 px-4 py-2 rounded">
-                    {ntpServer}
+              {/* NTP Status Section */}
+              <Card className="bg-gray-700 border-gray-500">
+                <CardHeader>
+                  <CardTitle className="text-2xl text-white flex items-center gap-3">
+                    <Clock className="w-8 h-8" />
+                    Network Time Synchronization
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        {ntpOffset !== null ? (
+                          <Wifi className="w-6 h-6 text-green-400" />
+                        ) : (
+                          <WifiOff className="w-6 h-6 text-red-400" />
+                        )}
+                        <span className="text-xl text-white">
+                          Status: {ntpOffset !== null ? 'Synchronized' : 'Failed'}
+                        </span>
+                      </div>
+                      
+                      <div className="text-lg text-gray-300">
+                        <strong className="text-white">Server:</strong> {ntpServer}
+                      </div>
+                      
+                      <div className="text-lg text-gray-300">
+                        <strong className="text-white">Last Sync:</strong> {lastNtpSync || 'Never'}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="text-lg text-gray-300">
+                        <strong className="text-white">Offset:</strong> {ntpOffset !== null ? `${ntpOffset}ms` : 'N/A'}
+                      </div>
+                      
+                      <div className="text-lg text-gray-300">
+                        <strong className="text-white">Drift:</strong> {ntpDrift !== null ? `${ntpDrift}ms/min` : 'N/A'}
+                      </div>
+                      
+                      <Button
+                        onClick={syncWithNTP}
+                        className="h-12 text-lg bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Clock className="w-5 h-5 mr-2" />
+                        Sync Now
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
               
               <Button
                 onClick={applySettings}
                 size="lg"
-                className="w-full h-20 text-2xl bg-green-600 hover:bg-green-700"
+                className="w-full h-24 text-3xl bg-green-600 hover:bg-green-700 rounded-xl"
               >
                 Apply Settings
               </Button>
@@ -783,125 +828,141 @@ const CountdownClock = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="info" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
+        <TabsContent value="info" className="space-y-6 p-4 min-h-screen bg-gray-900">
+          <Card className="bg-gray-800 border-gray-600">
             <CardHeader>
-              <CardTitle className="text-2xl text-white">HTTP API Documentation</CardTitle>
+              <CardTitle className="text-3xl text-white mb-4">HTTP API Documentation</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-lg text-gray-300">
-                <div>Server accessible at:</div>
-                <ul className="list-disc list-inside mt-2 space-y-1">
+            <CardContent className="space-y-6">
+              <div className="text-xl text-gray-300 bg-gray-700 p-6 rounded-xl">
+                <div className="text-2xl font-bold text-white mb-4">Server accessible at:</div>
+                <ul className="list-disc list-inside mt-4 space-y-3">
                   <li>
-                    <code className="bg-gray-900 px-2 py-1 rounded">http://{ipAddress}:{window.location.port || 8080}</code>
+                    <code className="bg-gray-900 px-4 py-2 rounded text-lg text-green-400">
+                      http://{ipAddress}:{window.location.port || 8080}
+                    </code>
                   </li>
                   {ipAddress !== 'localhost' && (
                     <li>
-                      <code className="bg-gray-900 px-2 py-1 rounded">http://localhost:{window.location.port || 8080}</code>
+                      <code className="bg-gray-900 px-4 py-2 rounded text-lg text-green-400">
+                        http://localhost:{window.location.port || 8080}
+                      </code>
                     </li>
                   )}
                 </ul>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div>
-                  <h3 className="text-xl font-semibold text-green-400 mb-2">Timer Controls</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                  <h3 className="text-2xl font-bold text-green-400 mb-6">Timer Controls</h3>
+                  <div className="space-y-4 text-lg">
+                    <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
                       <div>
-                        <code className="text-green-300">POST /start</code>
-                        <p className="text-gray-300 mt-1">Start the countdown timer</p>
+                        <code className="text-2xl text-green-300 font-bold">POST /start</code>
+                        <p className="text-gray-300 mt-2 text-lg">Start the countdown timer</p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/start')}>
-                        <Copy className="w-5 h-5 text-white" />
+                      <Button variant="ghost" size="lg" onClick={() => copyCommand('/start')} className="h-16 w-16">
+                        <Copy className="w-8 h-8 text-white" />
                       </Button>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                    <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
                       <div>
-                        <code className="text-yellow-300">POST /pause</code>
-                        <p className="text-gray-300 mt-1">Pause/Resume the timer</p>
+                        <code className="text-2xl text-yellow-300 font-bold">POST /pause</code>
+                        <p className="text-gray-300 mt-2 text-lg">Pause/Resume the timer</p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/pause')}>
-                        <Copy className="w-5 h-5 text-white" />
+                      <Button variant="ghost" size="lg" onClick={() => copyCommand('/pause')} className="h-16 w-16">
+                        <Copy className="w-8 h-8 text-white" />
                       </Button>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                    <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
                       <div>
-                        <code className="text-red-300">POST /reset</code>
-                        <p className="text-gray-300 mt-1">Reset timer to initial settings</p>
+                        <code className="text-2xl text-red-300 font-bold">POST /reset</code>
+                        <p className="text-gray-300 mt-2 text-lg">Reset timer to initial settings</p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/reset')}>
-                        <Copy className="w-5 h-5 text-white" />
+                      <Button variant="ghost" size="lg" onClick={() => copyCommand('/reset')} className="h-16 w-16">
+                        <Copy className="w-8 h-8 text-white" />
                       </Button>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                    <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
                       <div>
-                        <code className="text-blue-300">POST /next-round</code>
-                        <p className="text-gray-300 mt-1">Skip to next round</p>
+                        <code className="text-2xl text-blue-300 font-bold">POST /next-round</code>
+                        <p className="text-gray-300 mt-2 text-lg">Skip to next round</p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/next-round')}>
-                        <Copy className="w-5 h-5 text-white" />
+                      <Button variant="ghost" size="lg" onClick={() => copyCommand('/next-round')} className="h-16 w-16">
+                        <Copy className="w-8 h-8 text-white" />
                       </Button>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded flex justify-between items-center">
+                    <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
                       <div>
-                        <code className="text-purple-300">POST /previous-round</code>
-                        <p className="text-gray-300 mt-1">Go to previous round</p>
+                        <code className="text-2xl text-purple-300 font-bold">POST /previous-round</code>
+                        <p className="text-gray-300 mt-2 text-lg">Go to previous round</p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => copyCommand('/previous-round')}>
-                        <Copy className="w-5 h-5 text-white" />
+                      <Button variant="ghost" size="lg" onClick={() => copyCommand('/previous-round')} className="h-16 w-16">
+                        <Copy className="w-8 h-8 text-white" />
                       </Button>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-blue-400 mb-2">Configuration</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-purple-300">POST /set-time</code>
-                      <p className="text-gray-300 mt-1">Body: <code>{"{"}"minutes": 5, "seconds": 30{"}"}</code></p>
+                  <h3 className="text-2xl font-bold text-blue-400 mb-6">Configuration</h3>
+                  <div className="space-y-4 text-lg">
+                    <div className="bg-gray-700 p-6 rounded-xl">
+                      <code className="text-2xl text-purple-300 font-bold">POST /set-time</code>
+                      <p className="text-gray-300 mt-2">Body: <code className="bg-gray-900 px-2 py-1 rounded">{"{"}"minutes": 5, "seconds": 30{"}"}</code></p>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-purple-300">POST /set-rounds</code>
-                      <p className="text-gray-300 mt-1">Body: <code>{"{"}"rounds": 10{"}"}</code></p>
+                    <div className="bg-gray-700 p-6 rounded-xl">
+                      <code className="text-2xl text-purple-300 font-bold">POST /set-rounds</code>
+                      <p className="text-gray-300 mt-2">Body: <code className="bg-gray-900 px-2 py-1 rounded">{"{"}"rounds": 10{"}"}</code></p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-cyan-400 mb-2">Status & Display Pages</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="bg-gray-900 p-3 rounded">
-                      <code className="text-cyan-300">GET /status</code>
-                      <p className="text-gray-300 mt-1">Get current timer state and settings</p>
+                  <h3 className="text-2xl font-bold text-cyan-400 mb-6">Status & Display Pages</h3>
+                  <div className="space-y-4 text-lg">
+                    <div className="bg-gray-700 p-6 rounded-xl">
+                      <code className="text-2xl text-cyan-300 font-bold">GET /status</code>
+                      <p className="text-gray-300 mt-2">Get current timer state and settings</p>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded">
-                      <a href="/clockpretty" target="_blank" className="text-cyan-300 underline">
+                    <div className="bg-gray-700 p-6 rounded-xl">
+                      <a href="/clockpretty" target="_blank" className="text-2xl text-cyan-300 underline font-bold">
                         <code>GET /clockpretty</code>
                       </a>
-                      <p className="text-gray-300 mt-1">Beautiful dark dashboard display (read-only)</p>
+                      <p className="text-gray-300 mt-2">Beautiful dark dashboard display (read-only)</p>
                     </div>
-                    <div className="bg-gray-900 p-3 rounded">
-                      <a href="/clockarena" target="_blank" className="text-cyan-300 underline">
+                    <div className="bg-gray-700 p-6 rounded-xl">
+                      <a href="/clockarena" target="_blank" className="text-2xl text-cyan-300 underline font-bold">
                         <code>GET /clockarena</code>
                       </a>
-                      <p className="text-gray-300 mt-1">Compact arena-style countdown display</p>
+                      <p className="text-gray-300 mt-2">Compact arena-style countdown display</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-orange-400 mb-2">Stream Deck Integration</h3>
-                  <div className="bg-gray-900 p-4 rounded text-sm">
-                    <p className="text-gray-300 mb-2">For Stream Deck with Companion:</p>
-                    <ul className="list-disc list-inside space-y-1 text-gray-400">
-                      <li>Use HTTP Request actions</li>
-                      <li>Set method to POST for controls</li>
-                      <li>Use GET for status checks</li>
-                      <li>Configure with your Pi's IP address</li>
-                      <li>NTP synchronized for accurate timing</li>
+                  <h3 className="text-2xl font-bold text-orange-400 mb-6">Bitfocus Companion Integration</h3>
+                  <div className="bg-gray-700 p-6 rounded-xl text-lg">
+                    <p className="text-gray-300 mb-4 text-xl">For Bitfocus Companion with Stream Deck:</p>
+                    <ul className="list-disc list-inside space-y-3 text-gray-300">
+                      <li className="text-lg">Use "Generic HTTP" module in Companion</li>
+                      <li className="text-lg">Set target IP to your Pi's address: <code className="bg-gray-900 px-2 py-1 rounded">{ipAddress}</code></li>
+                      <li className="text-lg">Use port: <code className="bg-gray-900 px-2 py-1 rounded">{window.location.port || 8080}</code></li>
+                      <li className="text-lg">Set method to POST for timer controls</li>
+                      <li className="text-lg">Use GET for status checks and feedback</li>
+                      <li className="text-lg">Enable "Parse Variables in HTTP Data" for dynamic content</li>
+                      <li className="text-lg">NTP synchronized for frame-accurate timing</li>
                     </ul>
+                    
+                    <div className="mt-6 p-4 bg-gray-800 rounded-lg">
+                      <h4 className="text-xl font-bold text-white mb-3">Example Companion Setup:</h4>
+                      <div className="space-y-2 text-gray-300">
+                        <div><strong>Base URL:</strong> <code className="bg-gray-900 px-2 py-1 rounded">http://{ipAddress}:{window.location.port || 8080}</code></div>
+                        <div><strong>Start Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/start</code></div>
+                        <div><strong>Pause Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/pause</code></div>
+                        <div><strong>Reset Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset</code></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -909,73 +970,75 @@ const CountdownClock = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="debug" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
+        <TabsContent value="debug" className="space-y-6 p-4 min-h-screen bg-gray-900">
+          <Card className="bg-gray-800 border-gray-600">
             <CardHeader>
-              <CardTitle className="text-2xl text-white">Debug Log</CardTitle>
-              <div className="flex gap-2">
+              <CardTitle className="text-3xl text-white mb-4">Debug Log</CardTitle>
+              <div className="flex gap-4 flex-wrap">
                 <Button
                   variant={debugFilter === 'ALL' ? 'default' : 'outline'}
                   onClick={() => setDebugFilter('ALL')}
-                  className="text-white"
+                  className="text-lg h-12 px-6 text-white bg-gray-700 hover:bg-gray-600"
                 >
-                  All
+                  All ({debugLog.length})
                 </Button>
                 <Button
                   variant={debugFilter === 'UI' ? 'default' : 'outline'}
                   onClick={() => setDebugFilter('UI')}
-                  className="text-white"
+                  className="text-lg h-12 px-6 text-white bg-gray-700 hover:bg-gray-600"
                 >
-                  UI
+                  UI ({debugLog.filter(e => e.source === 'UI').length})
                 </Button>
                 <Button
                   variant={debugFilter === 'API' ? 'default' : 'outline'}
                   onClick={() => setDebugFilter('API')}
-                  className="text-white"
+                  className="text-lg h-12 px-6 text-white bg-gray-700 hover:bg-gray-600"
                 >
-                  API
+                  API ({debugLog.filter(e => e.source === 'API').length})
                 </Button>
                 <Button
                   variant={debugFilter === 'WEBSOCKET' ? 'default' : 'outline'}
                   onClick={() => setDebugFilter('WEBSOCKET')}
-                  className="text-white"
+                  className="text-lg h-12 px-6 text-white bg-gray-700 hover:bg-gray-600"
                 >
-                  WebSocket
+                  WebSocket ({debugLog.filter(e => e.source === 'WEBSOCKET').length})
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setDebugLog([])}
-                  className="text-white ml-4"
+                  className="text-lg h-12 px-6 text-white bg-red-600 hover:bg-red-700 ml-4"
                 >
                   Clear Log
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="max-h-96 overflow-y-auto space-y-2">
+              <div className="max-h-96 overflow-y-auto space-y-3">
                 {filteredDebugLog.map((entry, index) => (
-                  <div key={index} className="bg-gray-900 p-3 rounded text-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-gray-400">{new Date(entry.timestamp).toLocaleTimeString()}</span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        entry.source === 'UI' ? 'bg-blue-600' :
-                        entry.source === 'API' ? 'bg-green-600' :
-                        'bg-purple-600'
+                  <div key={index} className="bg-gray-700 p-4 rounded-xl text-lg border border-gray-600">
+                    <div className="flex items-center gap-4 mb-3">
+                      <span className="text-gray-300 text-lg font-mono">
+                        {new Date(entry.timestamp).toLocaleTimeString()}
+                      </span>
+                      <span className={`px-3 py-1 rounded text-lg font-bold ${
+                        entry.source === 'UI' ? 'bg-blue-600 text-white' :
+                        entry.source === 'API' ? 'bg-green-600 text-white' :
+                        'bg-purple-600 text-white'
                       }`}>
                         {entry.source}
                       </span>
-                      <span className="text-white font-medium">{entry.action}</span>
+                      <span className="text-white font-semibold text-lg">{entry.action}</span>
                     </div>
                     {entry.details && (
-                      <pre className="text-gray-300 text-xs overflow-x-auto">
+                      <pre className="text-gray-300 text-base overflow-x-auto bg-gray-800 p-3 rounded-lg border">
                         {JSON.stringify(entry.details, null, 2)}
                       </pre>
                     )}
                   </div>
                 ))}
                 {filteredDebugLog.length === 0 && (
-                  <div className="text-gray-400 text-center py-8">
-                    No debug entries found
+                  <div className="text-gray-400 text-center py-12 text-2xl">
+                    No debug entries found for "{debugFilter}" filter
                   </div>
                 )}
               </div>

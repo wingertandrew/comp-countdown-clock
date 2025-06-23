@@ -578,64 +578,64 @@ const CountdownClock = () => {
       : 'bg-green-500';
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
+    <div className="min-h-screen bg-black text-white">
       <div className="h-screen flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-4 bg-gray-800 border-gray-700 flex-shrink-0">
-            <TabsTrigger value="clock" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
-            <TabsTrigger value="settings" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">
-              <Settings className="w-5 h-5 mr-2" />
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-2 bg-gray-800 border-gray-700 flex-shrink-0">
+            <TabsTrigger value="clock" className="text-xs sm:text-sm md:text-base lg:text-lg py-2 sm:py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm md:text-base lg:text-lg py-2 sm:py-3 data-[state=active]:bg-gray-600">
+              <Settings className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
               Settings
             </TabsTrigger>
-            <TabsTrigger value="info" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">
-              <Info className="w-5 h-5 mr-2" />
+            <TabsTrigger value="info" className="text-xs sm:text-sm md:text-base lg:text-lg py-2 sm:py-3 data-[state=active]:bg-gray-600">
+              <Info className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
               API Info
             </TabsTrigger>
-            <TabsTrigger value="debug" className="text-sm md:text-lg py-3 data-[state=active]:bg-gray-600">
-              <Bug className="w-5 h-5 mr-2" />
+            <TabsTrigger value="debug" className="text-xs sm:text-sm md:text-base lg:text-lg py-2 sm:py-3 data-[state=active]:bg-gray-600">
+              <Bug className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
               Debug
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="clock" className="flex-1 flex flex-col p-2 sm:p-4">
-            <div className={cn('bg-black rounded-3xl p-4 sm:p-8 border-4 relative overflow-hidden flex-1 flex flex-col', borderColorClass)}>
+          <TabsContent value="clock" className="flex-1 flex flex-col p-1 sm:p-2 md:p-4">
+            <div className={cn('bg-black rounded-2xl sm:rounded-3xl p-2 sm:p-4 md:p-6 lg:p-8 border-2 sm:border-4 relative overflow-hidden flex-1 flex flex-col', borderColorClass)}>
               {/* Elapsed Time Header */}
-              <div className={cn('absolute top-0 left-0 right-0 p-2 sm:p-4', bgColorClass)}>
-                <div className="flex items-center justify-center gap-2 sm:gap-4 text-black text-lg sm:text-2xl font-bold">
-                  <div className="w-4 h-4 sm:w-8 sm:h-8 rounded-full bg-black flex items-center justify-center">
-                    <div className={cn('w-2 h-2 sm:w-4 sm:h-4 rounded-full', bgColorClass)}></div>
+              <div className={cn('absolute top-0 left-0 right-0 p-1 sm:p-2 md:p-4', bgColorClass)}>
+                <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-4 text-black text-xs sm:text-lg md:text-xl lg:text-2xl font-bold">
+                  <div className="w-2 h-2 sm:w-4 sm:h-4 md:w-6 md:h-6 lg:w-8 lg:h-8 rounded-full bg-black flex items-center justify-center">
+                    <div className={cn('w-1 h-1 sm:w-2 sm:h-2 md:w-3 md:h-3 lg:w-4 lg:h-4 rounded-full', bgColorClass)}></div>
                   </div>
-                  <span className="text-sm sm:text-2xl">ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
+                  <span className="text-xs sm:text-base md:text-xl lg:text-2xl">ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
                 </div>
               </div>
 
-              {/* Main Timer Display */}
-              <div className="flex-1 flex items-center justify-center mt-12 sm:mt-20 mb-4 sm:mb-8">
-                <div className="text-center">
-                  <div className="text-4xl sm:text-6xl md:text-8xl lg:text-[12rem] xl:text-[20rem] font-bold tracking-wider text-white leading-none font-mono">
+              {/* Main Timer Display - Much Larger */}
+              <div className="flex-1 flex items-center justify-center mt-8 sm:mt-12 md:mt-16 lg:mt-20 mb-2 sm:mb-4 md:mb-6 lg:mb-8">
+                <div className="text-center w-full">
+                  <div className="text-6xl sm:text-8xl md:text-[8rem] lg:text-[12rem] xl:text-[16rem] 2xl:text-[20rem] font-bold tracking-wider text-white leading-[0.8] font-mono break-all">
                     {formatTime(clockState.minutes, clockState.seconds)}
                   </div>
                 </div>
               </div>
 
               {/* Status Bar */}
-              <div className={cn('rounded-xl p-4 sm:p-8 mb-4 sm:mb-6', bgColorClass)}>
-                <div className="flex items-center justify-center gap-2 sm:gap-4 text-black text-xl sm:text-4xl font-bold">
-                  <div className="flex items-center gap-2 sm:gap-3">
+              <div className={cn('rounded-lg sm:rounded-xl p-2 sm:p-4 md:p-6 lg:p-8 mb-2 sm:mb-4 md:mb-6', bgColorClass)}>
+                <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-4 text-black text-sm sm:text-xl md:text-2xl lg:text-4xl font-bold">
+                  <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
                     {clockState.isRunning && !clockState.isPaused ? (
-                      <div className="w-0 h-0 border-l-[10px] sm:border-l-[20px] border-l-black border-t-[6px] sm:border-t-[12px] border-t-transparent border-b-[6px] sm:border-b-[12px] border-b-transparent"></div>
+                      <div className="w-0 h-0 border-l-[6px] sm:border-l-[10px] md:border-l-[15px] lg:border-l-[20px] border-l-black border-t-[3px] sm:border-t-[6px] md:border-t-[9px] lg:border-t-[12px] border-t-transparent border-b-[3px] sm:border-b-[6px] md:border-b-[9px] lg:border-b-[12px] border-b-transparent"></div>
                     ) : clockState.isPaused ? (
-                      <div className="flex gap-1 sm:gap-2">
-                        <div className="w-2 sm:w-3 h-4 sm:h-8 bg-black"></div>
-                        <div className="w-2 sm:w-3 h-4 sm:h-8 bg-black"></div>
+                      <div className="flex gap-1">
+                        <div className="w-1 sm:w-2 md:w-3 lg:w-4 h-2 sm:h-4 md:h-6 lg:h-8 bg-black"></div>
+                        <div className="w-1 sm:w-2 md:w-3 lg:w-4 h-2 sm:h-4 md:h-6 lg:h-8 bg-black"></div>
                       </div>
                     ) : (
-                      <div className="w-4 sm:w-8 h-4 sm:h-8 bg-black"></div>
+                      <div className="w-2 sm:w-4 md:w-6 lg:w-8 h-2 sm:h-4 md:h-6 lg:h-8 bg-black"></div>
                     )}
-                    <span className="text-sm sm:text-4xl">{getStatusText()}</span>
+                    <span className="text-xs sm:text-base md:text-2xl lg:text-4xl">{getStatusText()}</span>
                   </div>
                   {clockState.isPaused && (
-                    <span className="text-orange-600 text-sm sm:text-2xl">
+                    <span className="text-orange-600 text-xs sm:text-sm md:text-xl lg:text-2xl">
                       - {formatDuration(clockState.currentPauseDuration)}
                     </span>
                   )}
@@ -643,30 +643,30 @@ const CountdownClock = () => {
               </div>
 
               {/* IP Address */}
-              <div className="mb-4 sm:mb-8">
-                <div className="flex items-center gap-2 text-white text-sm sm:text-xl">
-                  <div className="w-2 sm:w-4 h-2 sm:h-4 bg-white rounded-full"></div>
+              <div className="mb-2 sm:mb-4 md:mb-6 lg:mb-8">
+                <div className="flex items-center gap-1 sm:gap-2 text-white text-xs sm:text-sm md:text-lg lg:text-xl">
+                  <div className="w-1 sm:w-2 md:w-3 lg:w-4 h-1 sm:h-2 md:h-3 lg:h-4 bg-white rounded-full"></div>
                   <span>{ipAddress}</span>
                 </div>
               </div>
 
               {/* Control Buttons */}
-              <div className="grid grid-cols-7 gap-2 sm:gap-4">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 lg:gap-4">
                 {/* Time Adjustment Group */}
-                <div className="col-span-2 flex gap-1 sm:gap-2">
+                <div className="col-span-2 flex gap-1">
                   <Button
                     onClick={() => adjustTimeBySeconds(-1)}
                     disabled={clockState.isRunning}
-                    className="h-12 sm:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-3xl font-bold flex-1"
+                    className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl text-sm sm:text-lg md:text-2xl lg:text-3xl font-bold flex-1"
                   >
-                    <Minus className="w-4 h-4 sm:w-8 sm:h-8" />
+                    <Minus className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6 lg:w-8 lg:h-8" />
                   </Button>
                   <Button
                     onClick={() => adjustTimeBySeconds(1)}
                     disabled={clockState.isRunning}
-                    className="h-12 sm:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-3xl font-bold flex-1"
+                    className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl text-sm sm:text-lg md:text-2xl lg:text-3xl font-bold flex-1"
                   >
-                    <Plus className="w-4 h-4 sm:w-8 sm:h-8" />
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6 lg:w-8 lg:h-8" />
                   </Button>
                 </div>
 
@@ -674,48 +674,48 @@ const CountdownClock = () => {
                 <Button
                   onClick={previousRound}
                   disabled={clockState.currentRound <= 1}
-                  className="h-12 sm:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
+                  className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl"
                 >
-                  <SkipBack className="w-5 h-5 sm:w-10 sm:h-10" />
+                  <SkipBack className="w-3 h-3 sm:w-5 sm:h-5 md:w-7 md:h-7 lg:w-10 lg:h-10" />
                 </Button>
 
                 {/* Play/Pause Button - Wider */}
                 <Button
                   onClick={togglePlayPause}
-                  className="h-12 sm:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl col-span-2"
+                  className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl col-span-2"
                 >
                   {clockState.isRunning && !clockState.isPaused ? (
-                    <div className="flex gap-1 sm:gap-2">
-                      <div className="w-2 sm:w-4 h-6 sm:h-12 bg-black"></div>
-                      <div className="w-2 sm:w-4 h-6 sm:h-12 bg-black"></div>
+                    <div className="flex gap-1">
+                      <div className="w-1 sm:w-2 md:w-3 lg:w-4 h-3 sm:h-6 md:h-9 lg:h-12 bg-black"></div>
+                      <div className="w-1 sm:w-2 md:w-3 lg:w-4 h-3 sm:h-6 md:h-9 lg:h-12 bg-black"></div>
                     </div>
                   ) : (
-                    <div className="w-0 h-0 border-l-[12px] sm:border-l-[24px] border-l-black border-t-[9px] sm:border-t-[18px] border-t-transparent border-b-[9px] sm:border-b-[18px] border-b-transparent ml-1 sm:ml-2"></div>
+                    <div className="w-0 h-0 border-l-[8px] sm:border-l-[12px] md:border-l-[18px] lg:border-l-[24px] border-l-black border-t-[6px] sm:border-t-[9px] md:border-t-[13px] lg:border-t-[18px] border-t-transparent border-b-[6px] sm:border-b-[9px] md:border-b-[13px] lg:border-b-[18px] border-b-transparent ml-1 sm:ml-2"></div>
                   )}
                 </Button>
 
                 <Button
                   onClick={nextRound}
                   disabled={clockState.currentRound >= clockState.totalRounds}
-                  className="h-12 sm:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
+                  className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl"
                 >
-                  <SkipForward className="w-5 h-5 sm:w-10 sm:h-10" />
+                  <SkipForward className="w-3 h-3 sm:w-5 sm:h-5 md:w-7 md:h-7 lg:w-10 lg:h-10" />
                 </Button>
 
                 {/* Reset Button - Smaller */}
                 <Button
                   onClick={resetTimer}
-                  className="h-12 sm:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
+                  className="h-8 sm:h-12 md:h-16 lg:h-20 xl:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-lg sm:rounded-xl md:rounded-2xl"
                 >
-                  <div className="w-3 sm:w-6 h-3 sm:h-6 bg-black rounded-sm"></div>
+                  <div className="w-2 sm:w-3 md:w-4 lg:w-6 h-2 sm:h-3 md:h-4 lg:h-6 bg-black rounded-sm"></div>
                 </Button>
               </div>
 
               {/* Round Info */}
-              <div className="text-center mt-4 sm:mt-8 text-white text-lg sm:text-2xl">
+              <div className="text-center mt-2 sm:mt-4 md:mt-6 lg:mt-8 text-white text-sm sm:text-lg md:text-xl lg:text-2xl">
                 Round {clockState.currentRound} of {clockState.totalRounds}
                 {clockState.totalPausedTime > 0 && (
-                  <div className="text-yellow-400 text-sm sm:text-xl mt-2">
+                  <div className="text-yellow-400 text-xs sm:text-sm md:text-lg lg:text-xl mt-1 sm:mt-2">
                     Total Paused: {formatDuration(clockState.totalPausedTime)}
                   </div>
                 )}
@@ -723,7 +723,7 @@ const CountdownClock = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="settings" className="flex-1 overflow-auto">
+          <TabsContent value="settings" className="flex-1 overflow-auto p-2 sm:p-4">
             <div className="space-y-6">
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
@@ -875,7 +875,7 @@ const CountdownClock = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="info" className="flex-1 overflow-auto">
+          <TabsContent value="info" className="flex-1 overflow-auto p-2 sm:p-4">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-2xl text-white">HTTP API Documentation</CardTitle>
@@ -1073,7 +1073,7 @@ const CountdownClock = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="debug" className="flex-1 overflow-auto">
+          <TabsContent value="debug" className="flex-1 overflow-auto p-2 sm:p-4">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-2xl text-white">Debug Log</CardTitle>

@@ -93,6 +93,16 @@ app.post('/api/reset', (_req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/reset-time', (_req, res) => {
+  broadcast({ action: 'reset-time' });
+  res.json({ success: true });
+});
+
+app.post('/api/reset-rounds', (_req, res) => {
+  broadcast({ action: 'reset-rounds' });
+  res.json({ success: true });
+});
+
 app.post('/api/next-round', (_req, res) => {
   broadcast({ action: 'next-round' });
   res.json({ success: true });
@@ -131,12 +141,27 @@ app.get('/api/ntp-sync', async (req, res) => {
   }
 });
 
-app.get('/api/status', (_req, res) => {
-  if (lastStatus) {
-    res.json(lastStatus);
-  } else {
-    res.json({});
+app.get('/api/status', (req, res) => {
+  if (!lastStatus) {
+    return res.json({});
   }
+
+  const { fields } = req.query;
+  if (fields) {
+    const requested = String(fields)
+      .split(',')
+      .map(f => f.trim())
+      .filter(Boolean);
+    const filtered = {};
+    requested.forEach(f => {
+      if (Object.prototype.hasOwnProperty.call(lastStatus, f)) {
+        filtered[f] = lastStatus[f];
+      }
+    });
+    return res.json(filtered);
+  }
+
+  res.json(lastStatus);
 });
 
 const dist = join(__dirname, 'dist');

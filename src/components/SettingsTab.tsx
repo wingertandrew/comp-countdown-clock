@@ -56,14 +56,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 <Button
                   onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))}
                   size="lg"
-                  className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 rounded-xl"
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
                 >
                   <Minus className="w-12 h-12" />
                 </Button>
                 <Button
                   onClick={() => setInputMinutes(Math.min(59, inputMinutes + 1))}
                   size="lg"
-                  className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 rounded-xl"
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
                 >
                   <Plus className="w-12 h-12" />
                 </Button>
@@ -84,14 +84,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 <Button
                   onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))}
                   size="lg"
-                  className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 rounded-xl"
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
                 >
                   <Minus className="w-12 h-12" />
                 </Button>
                 <Button
                   onClick={() => setInputSeconds(Math.min(59, inputSeconds + 1))}
                   size="lg"
-                  className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 rounded-xl"
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
                 >
                   <Plus className="w-12 h-12" />
                 </Button>
@@ -112,14 +112,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 <Button
                   onClick={() => setInputRounds(Math.max(1, inputRounds - 1))}
                   size="lg"
-                  className="h-24 w-24 text-6xl bg-red-600 hover:bg-red-700 rounded-xl"
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
                 >
                   <Minus className="w-12 h-12" />
                 </Button>
                 <Button
                   onClick={() => setInputRounds(Math.min(15, inputRounds + 1))}
                   size="lg"
-                  className="h-24 w-24 text-6xl bg-green-600 hover:bg-green-700 rounded-xl"
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
                 >
                   <Plus className="w-12 h-12" />
                 </Button>
@@ -182,7 +182,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           <Button
             onClick={onApplySettings}
             size="lg"
-            className="w-full h-24 text-3xl bg-green-600 hover:bg-green-700 rounded-xl"
+            className="w-full h-24 text-3xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
           >
             Apply Settings
           </Button>

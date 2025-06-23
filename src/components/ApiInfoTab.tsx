@@ -73,6 +73,24 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                 </div>
                 <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
                   <div>
+                    <code className="text-2xl text-red-300 font-bold">POST /reset-time</code>
+                    <p className="text-gray-300 mt-2 text-lg">Reset only the timer</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/reset-time')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-red-300 font-bold">POST /reset-rounds</code>
+                    <p className="text-gray-300 mt-2 text-lg">Reset timer and round count</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/reset-rounds')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
                     <code className="text-2xl text-blue-300 font-bold">POST /next-round</code>
                     <p className="text-gray-300 mt-2 text-lg">Skip to next round</p>
                   </div>
@@ -112,6 +130,7 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                 <div className="bg-gray-700 p-6 rounded-xl">
                   <code className="text-2xl text-cyan-300 font-bold">GET /status</code>
                   <p className="text-gray-300 mt-2">Get current timer state and settings</p>
+                  <p className="text-gray-400 text-sm mt-1">Use <code className="bg-gray-900 px-1 py-0.5 rounded">?fields=minutes,seconds</code> to request specific values</p>
                 </div>
                 <div className="bg-gray-700 p-6 rounded-xl">
                   <a href="/clockpretty" target="_blank" className="text-2xl text-cyan-300 underline font-bold">
@@ -138,8 +157,6 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                   <li className="text-lg">Use port: <code className="bg-gray-900 px-2 py-1 rounded">{window.location.port || 8080}</code></li>
                   <li className="text-lg">Set method to POST for timer controls</li>
                   <li className="text-lg">Use GET for status checks and feedback</li>
-                  <li className="text-lg">Enable "Parse Variables in HTTP Data" for dynamic content</li>
-                  <li className="text-lg">NTP synchronized for frame-accurate timing</li>
                 </ul>
                 
                 <div className="mt-6 p-4 bg-gray-800 rounded-lg">
@@ -148,7 +165,9 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                     <div><strong>Base URL:</strong> <code className="bg-gray-900 px-2 py-1 rounded">http://{ipAddress}:{window.location.port || 8080}</code></div>
                     <div><strong>Start Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/start</code></div>
                     <div><strong>Pause Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/pause</code></div>
-                    <div><strong>Reset Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset</code></div>
+                    <div><strong>Reset All:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset</code></div>
+                    <div><strong>Reset Time:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset-time</code></div>
+                    <div><strong>Reset Rounds:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset-rounds</code></div>
                   </div>
                 </div>
               </div>

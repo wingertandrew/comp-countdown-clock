@@ -92,6 +92,15 @@ curl -X POST http://localhost:8080/api/set-rounds \
 curl http://localhost:8080/api/status
 ```
 
+### Display Pages
+Use these read-only pages for showing the timer on additional screens:
+```text
+GET /clockpretty   # large dark dashboard
+GET /clockarena    # compact arena layout
+```
+
+WebSocket connections are available at `/ws` for real-time updates.
+
 ## Stream Deck Integration
 
 Bitfocus Companion is free control software for the Elgato Stream Deck. Use it to trigger the HTTP API from your Stream Deck or any network-connected device.
@@ -106,6 +115,11 @@ Bitfocus Companion is free control software for the Elgato Stream Deck. Use it t
 6. Use `localhost` when developing or the clock's IP address on your network.
 7. Keep the port `8080` unless you changed it in `server.js`.
 8. Test each button in Companion's emulator before deploying.
+
+For advanced setups, combine HTTP actions with feedback variables:
+- Poll `/api/status` every second to update button text with the remaining time.
+- Use conditional styling in Companion to change colors when the timer is paused or finished.
+- Create macros that trigger multiple API calls for complex workflows.
 
 For best results, create separate buttons for `start`, `pause`, `reset`, `next-round`, and `previous-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
 

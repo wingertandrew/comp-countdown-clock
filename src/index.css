@@ -100,4 +100,10 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  /* Utility for fluid font sizes based on viewport */
+  .responsive-text {
+    font-size: clamp(3rem, 10vmin, 20rem);
+    line-height: 1;
+  }
 }

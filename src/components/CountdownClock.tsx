@@ -173,6 +173,12 @@ const CountdownClock = () => {
       case 'reset':
         resetTimer();
         break;
+      case 'reset-time':
+        resetTime();
+        break;
+      case 'reset-rounds':
+        resetRounds();
+        break;
       case 'next-round':
         nextRound();
         break;
@@ -337,22 +343,43 @@ const CountdownClock = () => {
     }
   };
 
-  const resetTimer = () => {
-    addDebugLog('UI', 'Timer reset', { resetToTime: initialTime });
+  const resetTime = () => {
+    addDebugLog('UI', 'Time reset', { resetToTime: initialTime });
     setClockState(prev => ({
       ...prev,
       isRunning: false,
       isPaused: false,
       minutes: initialTime.minutes,
       seconds: initialTime.seconds,
-      currentRound: 1,
       elapsedMinutes: 0,
       elapsedSeconds: 0,
       pauseStartTime: null,
       totalPausedTime: 0,
       currentPauseDuration: 0
     }));
-    toast({ title: "Timer Reset" });
+    toast({ title: 'Time Reset' });
+  };
+
+  const resetRounds = () => {
+    addDebugLog('UI', 'Rounds reset', { totalRounds: clockState.totalRounds });
+    setClockState(prev => ({
+      ...prev,
+      currentRound: 1,
+      isRunning: false,
+      isPaused: false,
+      minutes: initialTime.minutes,
+      seconds: initialTime.seconds,
+      elapsedMinutes: 0,
+      elapsedSeconds: 0,
+      pauseStartTime: null,
+      totalPausedTime: 0,
+      currentPauseDuration: 0
+    }));
+    toast({ title: 'Rounds Reset' });
+  };
+
+  const resetTimer = () => {
+    resetRounds();
   };
 
   const nextRound = () => {
@@ -482,7 +509,8 @@ const CountdownClock = () => {
             onTogglePlayPause={togglePlayPause}
             onNextRound={nextRound}
             onPreviousRound={previousRound}
-            onResetTimer={resetTimer}
+            onResetTime={resetTime}
+            onResetRounds={resetRounds}
             onAdjustTimeBySeconds={adjustTimeBySeconds}
           />
         </TabsContent>

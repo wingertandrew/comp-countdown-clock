@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, SkipForward, SkipBack, Plus, Minus } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Plus, Minus, RotateCcw, History } from 'lucide-react';
+import HoldButton from './HoldButton';
 import { ClockState } from '@/types/clock';
 import { formatTime, formatDuration, getStatusColor, getStatusText } from '@/utils/clockUtils';
 
@@ -11,7 +12,8 @@ interface ClockDisplayProps {
   onTogglePlayPause: () => void;
   onNextRound: () => void;
   onPreviousRound: () => void;
-  onResetTimer: () => void;
+  onResetTime: () => void;
+  onResetRounds: () => void;
   onAdjustTimeBySeconds: (seconds: number) => void;
 }
 
@@ -21,7 +23,8 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
   onTogglePlayPause,
   onNextRound,
   onPreviousRound,
-  onResetTimer,
+  onResetTime,
+  onResetRounds,
   onAdjustTimeBySeconds
 }) => {
   const statusColor = getStatusColor(clockState.isRunning, clockState.isPaused);
@@ -86,7 +89,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
       </div>
 
       {/* Control Buttons */}
-      <div className="grid grid-cols-7 gap-4">
+      <div className="grid grid-cols-8 gap-4">
         {/* Time Adjustment Group */}
         <div className="col-span-2 flex gap-2">
           <Button
@@ -137,13 +140,21 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           <SkipForward className="w-10 h-10" />
         </Button>
 
-        {/* Reset Button - Smaller */}
-        <Button
-          onClick={onResetTimer}
+        {/* Reset Time Button */}
+        <HoldButton
+          onHoldComplete={onResetTime}
           className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
         >
-          <div className="w-6 h-6 bg-black rounded-sm"></div>
-        </Button>
+          <RotateCcw className="w-8 h-8" />
+        </HoldButton>
+
+        {/* Reset Rounds Button */}
+        <HoldButton
+          onHoldComplete={onResetRounds}
+          className="h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-2xl"
+        >
+          <History className="w-8 h-8" />
+        </HoldButton>
       </div>
 
       {/* Round Info */}

@@ -27,7 +27,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
   onResetRounds,
   onAdjustTimeBySeconds
 }) => {
-  const statusColor = getStatusColor(clockState.isRunning, clockState.isPaused);
+  const statusColor = getStatusColor(clockState.isRunning, clockState.isPaused, clockState.minutes, clockState.seconds);
 
   return (
     <div className="min-h-screen bg-black text-white p-2 sm:p-4 md:p-6 lg:p-8">
@@ -160,7 +160,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
 
         {/* Round Info - Larger text */}
         <div className="text-center text-white">
-          <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">
+          <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-2">
             Round {clockState.currentRound} of {clockState.totalRounds}
           </div>
           {clockState.totalPausedTime > 0 && (

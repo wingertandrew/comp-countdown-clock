@@ -2,7 +2,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Download } from 'lucide-react';
 import { DebugLogEntry, DebugFilter } from '@/types/clock';
+import { downloadCSV } from '@/utils/clockUtils';
 
 interface DebugTabProps {
   debugLog: DebugLogEntry[];
@@ -19,6 +21,18 @@ const DebugTab: React.FC<DebugTabProps> = ({
   onClearDebugLog,
   filteredDebugLog
 }) => {
+  const handleDownloadCSV = () => {
+    const csvData = debugLog.map(entry => ({
+      timestamp: entry.timestamp,
+      source: entry.source,
+      action: entry.action,
+      details: entry.details ? JSON.stringify(entry.details) : ''
+    }));
+    
+    const filename = `countdown-clock-log-${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCSV(csvData, filename);
+  };
+
   return (
     <div className="space-y-6 p-4 min-h-screen bg-gray-900">
       <Card className="bg-gray-800 border-gray-600">
@@ -55,8 +69,16 @@ const DebugTab: React.FC<DebugTabProps> = ({
             </Button>
             <Button
               variant="outline"
+              onClick={handleDownloadCSV}
+              className="text-lg h-12 px-6 text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Download className="w-5 h-5 mr-2" />
+              Download CSV
+            </Button>
+            <Button
+              variant="outline"
               onClick={onClearDebugLog}
-              className="text-lg h-12 px-6 text-white bg-red-600 hover:bg-red-700 ml-4"
+              className="text-lg h-12 px-6 text-white bg-red-600 hover:bg-red-700"
             >
               Clear Log
             </Button>

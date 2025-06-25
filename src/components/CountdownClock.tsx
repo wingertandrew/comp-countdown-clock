@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Bug } from 'lucide-react';
@@ -233,21 +232,25 @@ const CountdownClock = () => {
 
           if (newMinutes < 0) {
             if (prev.currentRound < prev.totalRounds) {
-              addDebugLog('UI', 'Round completed', { 
+              addDebugLog('UI', 'Round completed - Auto advancing', { 
                 completedRound: prev.currentRound, 
                 nextRound: prev.currentRound + 1 
               });
               toast({
                 title: `Round ${prev.currentRound} Complete!`,
-                description: `Starting round ${prev.currentRound + 1}`,
+                description: `Auto-advancing to round ${prev.currentRound + 1}`,
               });
+              // Auto-advance to next round
               return {
                 ...prev,
                 currentRound: prev.currentRound + 1,
                 minutes: initialTime.minutes,
                 seconds: initialTime.seconds,
                 elapsedMinutes: 0,
-                elapsedSeconds: 0
+                elapsedSeconds: 0,
+                // Keep timer running for auto-advance
+                isRunning: true,
+                isPaused: false
               };
             } else {
               addDebugLog('UI', 'All rounds completed', { totalRounds: prev.totalRounds });
@@ -502,7 +505,7 @@ const CountdownClock = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="clock" className="space-y-4 p-4">
+        <TabsContent value="clock" className="space-y-4">
           <ClockDisplay
             clockState={clockState}
             ipAddress={ipAddress}

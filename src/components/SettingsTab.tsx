@@ -50,7 +50,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 max="59"
                 value={inputMinutes}
                 onChange={(e) => setInputMinutes(parseInt(e.target.value) || 0)}
-                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-6xl font-bold rounded-xl"
+                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-xl"
               />
               <div className="flex gap-6 mt-6">
                 <Button
@@ -78,7 +78,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 max="59"
                 value={inputSeconds}
                 onChange={(e) => setInputSeconds(parseInt(e.target.value) || 0)}
-                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-6xl font-bold rounded-xl"
+                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-xl"
               />
               <div className="flex gap-6 mt-6">
                 <Button
@@ -106,7 +106,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 max="15"
                 value={inputRounds}
                 onChange={(e) => setInputRounds(parseInt(e.target.value) || 1)}
-                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-6xl font-bold rounded-xl"
+                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-xl"
               />
               <div className="flex gap-6 mt-6">
                 <Button

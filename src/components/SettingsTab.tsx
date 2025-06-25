@@ -40,7 +40,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Minutes</label>
-              <Input type="number" min="0" max="59" value={inputMinutes} onChange={e => setInputMinutes(parseInt(e.target.value) || 0)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-xl" />
+              <Input type="number" min="0" max="59" value={inputMinutes} onChange={e => setInputMinutes(parseInt(e.target.value) || 0)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
               <div className="flex gap-6 mt-6">
                 <Button onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
                   <Minus className="w-12 h-12" />
@@ -53,7 +53,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Seconds</label>
-              <Input type="number" min="0" max="59" value={inputSeconds} onChange={e => setInputSeconds(parseInt(e.target.value) || 0)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-xl" />
+              <Input type="number" min="0" max="59" value={inputSeconds} onChange={e => setInputSeconds(parseInt(e.target.value) || 0)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
               <div className="flex gap-6 mt-6">
                 <Button onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
                   <Minus className="w-12 h-12" />
@@ -66,7 +66,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Rounds (1-15)</label>
-              <Input type="number" min="1" max="15" value={inputRounds} onChange={e => setInputRounds(parseInt(e.target.value) || 1)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-xl" />
+              <Input type="number" min="1" max="15" value={inputRounds} onChange={e => setInputRounds(parseInt(e.target.value) || 1)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
               <div className="flex gap-6 mt-6">
                 <Button onClick={() => setInputRounds(Math.max(1, inputRounds - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
                   <Minus className="w-12 h-12" />

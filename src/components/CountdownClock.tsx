@@ -387,9 +387,9 @@ const CountdownClock = () => {
 
   const nextRound = () => {
     if (clockState.currentRound < clockState.totalRounds) {
-      addDebugLog('UI', 'Next round', { 
-        from: clockState.currentRound, 
-        to: clockState.currentRound + 1 
+      addDebugLog('UI', 'Next round', {
+        from: clockState.currentRound,
+        to: clockState.currentRound + 1
       });
       setClockState(prev => ({
         ...prev,
@@ -398,6 +398,8 @@ const CountdownClock = () => {
         seconds: initialTime.seconds,
         elapsedMinutes: 0,
         elapsedSeconds: 0,
+        isRunning: false,
+        isPaused: false,
         totalPausedTime: 0,
         currentPauseDuration: 0,
         pauseStartTime: null
@@ -408,9 +410,9 @@ const CountdownClock = () => {
 
   const previousRound = () => {
     if (clockState.currentRound > 1) {
-      addDebugLog('UI', 'Previous round', { 
-        from: clockState.currentRound, 
-        to: clockState.currentRound - 1 
+      addDebugLog('UI', 'Previous round', {
+        from: clockState.currentRound,
+        to: clockState.currentRound - 1
       });
       setClockState(prev => ({
         ...prev,
@@ -419,6 +421,8 @@ const CountdownClock = () => {
         seconds: initialTime.seconds,
         elapsedMinutes: 0,
         elapsedSeconds: 0,
+        isRunning: false,
+        isPaused: false,
         totalPausedTime: 0,
         currentPauseDuration: 0,
         pauseStartTime: null

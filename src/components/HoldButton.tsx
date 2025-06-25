@@ -9,13 +9,15 @@ interface HoldButtonProps {
   holdTime?: number;
   className?: string;
   children: React.ReactNode;
+  disabled?: boolean;
 }
 
 const HoldButton: React.FC<HoldButtonProps> = ({
   onHoldComplete,
   holdTime = 1000, // Changed from 2000 to 1000 (1 second)
   className,
-  children
+  children,
+  disabled = false
 }) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,6 +36,7 @@ const HoldButton: React.FC<HoldButtonProps> = ({
   };
 
   const startHold = () => {
+    if (disabled) return;
     clearTimers();
     setProgress(0);
     const interval = 50; // Smoother progress updates
@@ -49,6 +52,7 @@ const HoldButton: React.FC<HoldButtonProps> = ({
   return (
     <Button
       className={cn('relative overflow-hidden', className)}
+      disabled={disabled}
       onMouseDown={startHold}
       onMouseUp={clearTimers}
       onMouseLeave={clearTimers}

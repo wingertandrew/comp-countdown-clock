@@ -27,7 +27,17 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
   onResetRounds,
   onAdjustTimeBySeconds
 }) => {
-  const statusColor = getStatusColor(clockState.isRunning, clockState.isPaused, clockState.minutes, clockState.seconds);
+  const statusColor = getStatusColor(
+    clockState.isRunning, 
+    clockState.isPaused, 
+    clockState.minutes, 
+    clockState.seconds, 
+    clockState.isBetweenRounds
+  );
+
+  const displayTime = clockState.isBetweenRounds 
+    ? formatTime(clockState.betweenRoundsMinutes, clockState.betweenRoundsSeconds)
+    : formatTime(clockState.minutes, clockState.seconds);
 
   return (
     <div className="min-h-screen bg-black text-white p-2 sm:p-4 md:p-6 lg:p-8">
@@ -44,7 +54,13 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
             <div className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-black flex items-center justify-center">
               <div className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 rounded-full" style={{ backgroundColor: statusColor }}></div>
             </div>
-            <span>ELAPSED: {formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}</span>
+            <span>
+              {clockState.isBetweenRounds ? 'BETWEEN ROUNDS: ' : 'ELAPSED: '}
+              {clockState.isBetweenRounds 
+                ? displayTime 
+                : formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)
+              }
+            </span>
           </div>
         </div>
 
@@ -52,7 +68,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
         <div className="mt-12 sm:mt-16 md:mt-20 mb-4 sm:mb-6 md:mb-8">
           <div className="text-center">
             <div className="text-6xl sm:text-8xl md:text-[12rem] lg:text-[16rem] xl:text-[20rem] 2xl:text-[24rem] font-bold tracking-wider text-white leading-none font-mono">
-              {formatTime(clockState.minutes, clockState.seconds)}
+              {displayTime}
             </div>
           </div>
         </div>
@@ -71,7 +87,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
               ) : (
                 <div className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8 bg-black"></div>
               )}
-              <span>{getStatusText(clockState.isRunning, clockState.isPaused)}</span>
+              <span>{getStatusText(clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds)}</span>
             </div>
             {clockState.isPaused && (
               <span className="text-orange-600 text-sm sm:text-lg md:text-xl lg:text-2xl">
@@ -91,28 +107,28 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
 
         {/* Control Buttons - Responsive grid */}
         <div className="grid grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
-          {/* Time Adjustment Group */}
+          {/* Time Adjustment Group - Disabled during between rounds */}
           <div className="col-span-2 flex gap-1 sm:gap-2">
             <Button
               onClick={() => onAdjustTimeBySeconds(-1)}
-              disabled={clockState.isRunning && !clockState.isPaused}
+              disabled={(clockState.isRunning && !clockState.isPaused) || clockState.isBetweenRounds}
               className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-2xl md:text-3xl font-bold flex-1"
             >
               <Minus className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
             </Button>
             <Button
               onClick={() => onAdjustTimeBySeconds(1)}
-              disabled={clockState.isRunning && !clockState.isPaused}
+              disabled={(clockState.isRunning && !clockState.isPaused) || clockState.isBetweenRounds}
               className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-2xl md:text-3xl font-bold flex-1"
             >
               <Plus className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
             </Button>
           </div>
 
-          {/* Round Controls */}
+          {/* Round Controls - Disabled during between rounds */}
           <Button
             onClick={onPreviousRound}
-            disabled={clockState.currentRound <= 1}
+            disabled={clockState.currentRound <= 1 || clockState.isBetweenRounds}
             className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
           >
             <SkipBack className="w-5 sm:w-7 md:w-9 lg:w-10 h-5 sm:h-7 md:h-9 lg:h-10" />
@@ -135,23 +151,25 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
 
           <Button
             onClick={onNextRound}
-            disabled={clockState.currentRound >= clockState.totalRounds}
+            disabled={clockState.currentRound >= clockState.totalRounds || clockState.isBetweenRounds}
             className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
           >
             <SkipForward className="w-5 sm:w-7 md:w-9 lg:w-10 h-5 sm:h-7 md:h-9 lg:h-10" />
           </Button>
 
-          {/* Reset Time Button */}
+          {/* Reset Time Button - Disabled during between rounds */}
           <HoldButton
             onHoldComplete={onResetTime}
+            disabled={clockState.isBetweenRounds}
             className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
           >
             <RotateCcw className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
           </HoldButton>
 
-          {/* Reset Rounds Button */}
+          {/* Reset Rounds Button - Disabled during between rounds */}
           <HoldButton
             onHoldComplete={onResetRounds}
+            disabled={clockState.isBetweenRounds}
             className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
           >
             <History className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />

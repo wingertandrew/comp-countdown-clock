@@ -11,6 +11,9 @@ export interface ClockState {
   pauseStartTime: number | null;
   totalPausedTime: number;
   currentPauseDuration: number;
+  isBetweenRounds: boolean;
+  betweenRoundsMinutes: number;
+  betweenRoundsSeconds: number;
 }
 
 export interface DebugLogEntry {

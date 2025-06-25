@@ -22,13 +22,18 @@ const CountdownClock = () => {
     elapsedSeconds: 0,
     pauseStartTime: null,
     totalPausedTime: 0,
-    currentPauseDuration: 0
+    currentPauseDuration: 0,
+    isBetweenRounds: false,
+    betweenRoundsMinutes: 1,
+    betweenRoundsSeconds: 0
   });
 
   const [initialTime, setInitialTime] = useState({ minutes: 5, seconds: 0 });
   const [inputMinutes, setInputMinutes] = useState(5);
   const [inputSeconds, setInputSeconds] = useState(0);
   const [inputRounds, setInputRounds] = useState(3);
+  const [betweenRoundsEnabled, setBetweenRoundsEnabled] = useState(false);
+  const [betweenRoundsTime, setBetweenRoundsTime] = useState(60);
   const [activeTab, setActiveTab] = useState('clock');
   const [ntpOffset, setNtpOffset] = useState(0);
   const [ipAddress, setIpAddress] = useState('');
@@ -222,60 +227,145 @@ const CountdownClock = () => {
       intervalRef.current = setInterval(() => {
         setLastUpdateTime(Date.now());
         setClockState(prev => {
-          const newSeconds = prev.seconds - 1;
-          const newMinutes = newSeconds < 0 ? prev.minutes - 1 : prev.minutes;
-          const adjustedSeconds = newSeconds < 0 ? 59 : newSeconds;
+          if (prev.isBetweenRounds) {
+            // Count up during between rounds
+            const newSeconds = prev.seconds + 1;
+            const newMinutes = newSeconds >= 60 ? prev.minutes + 1 : prev.minutes;
+            const adjustedSeconds = newSeconds >= 60 ? 0 : newSeconds;
 
-          const totalElapsed = (initialTime.minutes * 60 + initialTime.seconds) - (newMinutes * 60 + adjustedSeconds);
-          const elapsedMinutes = Math.floor(totalElapsed / 60);
-          const elapsedSeconds = totalElapsed % 60;
+            const totalBetweenRoundsTime = Math.floor(betweenRoundsTime / 60) * 60 + (betweenRoundsTime % 60);
+            const currentBetweenRoundsTime = newMinutes * 60 + adjustedSeconds;
 
-          if (newMinutes < 0) {
-            if (prev.currentRound < prev.totalRounds) {
-              addDebugLog('UI', 'Round completed - Auto advancing', { 
-                completedRound: prev.currentRound, 
-                nextRound: prev.currentRound + 1 
+            if (currentBetweenRoundsTime >= totalBetweenRoundsTime) {
+              // Between rounds time complete, advance to next round
+              addDebugLog('UI', 'Between rounds completed - Advancing to next round', {
+                completedRound: prev.currentRound,
+                nextRound: prev.currentRound + 1
               });
-              toast({
-                title: `Round ${prev.currentRound} Complete!`,
-                description: `Auto-advancing to round ${prev.currentRound + 1}`,
-              });
-              // Auto-advance to next round
-              return {
-                ...prev,
-                currentRound: prev.currentRound + 1,
-                minutes: initialTime.minutes,
-                seconds: initialTime.seconds,
-                elapsedMinutes: 0,
-                elapsedSeconds: 0,
-                // Keep timer running for auto-advance
-                isRunning: true,
-                isPaused: false
-              };
-            } else {
-              addDebugLog('UI', 'All rounds completed', { totalRounds: prev.totalRounds });
-              toast({
-                title: "All Rounds Complete!",
-                description: "Countdown finished",
-              });
-              return {
-                ...prev,
-                isRunning: false,
-                minutes: 0,
-                seconds: 0,
-                elapsedMinutes,
-                elapsedSeconds
-              };
+              
+              if (prev.currentRound < prev.totalRounds) {
+                toast({
+                  title: `Between Rounds Complete!`,
+                  description: `Starting Round ${prev.currentRound + 1}`,
+                });
+                return {
+                  ...prev,
+                  currentRound: prev.currentRound + 1,
+                  minutes: initialTime.minutes,
+                  seconds: initialTime.seconds,
+                  isBetweenRounds: false,
+                  betweenRoundsMinutes: 0,
+                  betweenRoundsSeconds: 0,
+                  elapsedMinutes: 0,
+                  elapsedSeconds: 0,
+                  isRunning: false,
+                  isPaused: false,
+                  totalPausedTime: 0,
+                  currentPauseDuration: 0,
+                  pauseStartTime: null
+                };
+              } else {
+                toast({
+                  title: "All Rounds Complete!",
+                  description: "Tournament finished",
+                });
+                return {
+                  ...prev,
+                  isRunning: false,
+                  isBetweenRounds: false,
+                  betweenRoundsMinutes: Math.floor(totalBetweenRoundsTime / 60),
+                  betweenRoundsSeconds: totalBetweenRoundsTime % 60
+                };
+              }
             }
-          }
 
-          return {
-            ...prev,
-            minutes: newMinutes,
-            seconds: adjustedSeconds,
-            elapsedMinutes,
-            elapsedSeconds
-          };
+            return {
+              ...prev,
+              minutes: newMinutes,
+              seconds: adjustedSeconds,
+              betweenRoundsMinutes: newMinutes,
+              betweenRoundsSeconds: adjustedSeconds
+            };
+          } else {
+            // Regular countdown logic
+            const newSeconds = prev.seconds - 1;
+            const newMinutes = newSeconds < 0 ? prev.minutes - 1 : prev.minutes;
+            const adjustedSeconds = newSeconds < 0 ? 59 : newSeconds;
+
+            const totalElapsed = (initialTime.minutes * 60 + initialTime.seconds) - (newMinutes * 60 + adjustedSeconds);
+            const elapsedMinutes = Math.floor(totalElapsed / 60);
+            const elapsedSeconds = totalElapsed % 60;
+
+            if (newMinutes < 0) {
+              if (prev.currentRound < prev.totalRounds) {
+                if (betweenRoundsEnabled) {
+                  // Start between rounds timer
+                  addDebugLog('UI', 'Round completed - Starting between rounds timer', { 
+                    completedRound: prev.currentRound,
+                    betweenRoundsTime: betweenRoundsTime 
+                  });
+                  toast({
+                    title: `Round ${prev.currentRound} Complete!`,
+                    description: `Between rounds timer started`,
+                  });
+                  return {
+                    ...prev,
+                    minutes: 0,
+                    seconds: 0,
+                    isBetweenRounds: true,
+                    betweenRoundsMinutes: 0,
+                    betweenRoundsSeconds: 0,
+                    elapsedMinutes,
+                    elapsedSeconds,
+                    isRunning: true,
+                    isPaused: false
+                  };
+                } else {
+                  // Auto-advance to next round without between rounds timer
+                  addDebugLog('UI', 'Round completed - Auto advancing', { 
+                    completedRound: prev.currentRound, 
+                    nextRound: prev.currentRound + 1 
+                  });
+                  toast({
+                    title: `Round ${prev.currentRound} Complete!`,
+                    description: `Auto-advancing to round ${prev.currentRound + 1}`,
+                  });
+                  return {
+                    ...prev,
+                    currentRound: prev.currentRound + 1,
+                    minutes: initialTime.minutes,
+                    seconds: initialTime.seconds,
+                    elapsedMinutes: 0,
+                    elapsedSeconds: 0,
+                    isRunning: true,
+                    isPaused: false
+                  };
+                }
+              } else {
+                addDebugLog('UI', 'All rounds completed', { totalRounds: prev.totalRounds });
+                toast({
+                  title: "All Rounds Complete!",
+                  description: "Countdown finished",
+                });
+                return {
+                  ...prev,
+                  isRunning: false,
+                  minutes: 0,
+                  seconds: 0,
+                  elapsedMinutes,
+                  elapsedSeconds
+                };
+              }
+            }
+
+            return {
+              ...prev,
+              minutes: newMinutes,
+              seconds: adjustedSeconds,
+              elapsedMinutes,
+              elapsedSeconds
+            };
+          }
         });
       }, 1000);
     } else {
@@ -290,7 +380,7 @@ const CountdownClock = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [clockState.isRunning, clockState.isPaused, initialTime, toast]);
+  }, [clockState.isRunning, clockState.isPaused, initialTime, toast, betweenRoundsEnabled, betweenRoundsTime]);
 
   const startTimer = () => {
     addDebugLog('UI', 'Timer started');
@@ -402,7 +492,10 @@ const CountdownClock = () => {
         isPaused: false,
         totalPausedTime: 0,
         currentPauseDuration: 0,
-        pauseStartTime: null
+        pauseStartTime: null,
+        isBetweenRounds: false,
+        betweenRoundsMinutes: 0,
+        betweenRoundsSeconds: 0
       }));
       toast({ title: `Round ${clockState.currentRound + 1} Started` });
     }
@@ -425,7 +518,10 @@ const CountdownClock = () => {
         isPaused: false,
         totalPausedTime: 0,
         currentPauseDuration: 0,
-        pauseStartTime: null
+        pauseStartTime: null,
+        isBetweenRounds: false,
+        betweenRoundsMinutes: 0,
+        betweenRoundsSeconds: 0
       }));
       toast({ title: `Round ${clockState.currentRound - 1} Started` });
     }
@@ -477,7 +573,9 @@ const CountdownClock = () => {
   const applySettings = () => {
     addDebugLog('UI', 'Settings applied', { 
       time: { minutes: inputMinutes, seconds: inputSeconds },
-      rounds: inputRounds 
+      rounds: inputRounds,
+      betweenRoundsEnabled,
+      betweenRoundsTime
     });
     setTime(inputMinutes, inputSeconds);
     setRounds(inputRounds);
@@ -527,6 +625,8 @@ const CountdownClock = () => {
             inputMinutes={inputMinutes}
             inputSeconds={inputSeconds}
             inputRounds={inputRounds}
+            betweenRoundsEnabled={betweenRoundsEnabled}
+            betweenRoundsTime={betweenRoundsTime}
             ntpOffset={ntpOffset}
             ntpServer={ntpServer}
             lastNtpSync={lastNtpSync}
@@ -534,6 +634,8 @@ const CountdownClock = () => {
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}
+            setBetweenRoundsEnabled={setBetweenRoundsEnabled}
+            setBetweenRoundsTime={setBetweenRoundsTime}
             onApplySettings={applySettings}
             onSyncWithNTP={handleSyncWithNTP}
           />

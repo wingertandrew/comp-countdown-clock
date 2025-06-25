@@ -2,11 +2,15 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { Clock, Plus, Minus, Wifi, WifiOff } from 'lucide-react';
+
 interface SettingsTabProps {
   inputMinutes: number;
   inputSeconds: number;
   inputRounds: number;
+  betweenRoundsEnabled: boolean;
+  betweenRoundsTime: number;
   ntpOffset: number;
   ntpServer: string;
   lastNtpSync: string;
@@ -14,13 +18,18 @@ interface SettingsTabProps {
   setInputMinutes: (value: number) => void;
   setInputSeconds: (value: number) => void;
   setInputRounds: (value: number) => void;
+  setBetweenRoundsEnabled: (enabled: boolean) => void;
+  setBetweenRoundsTime: (time: number) => void;
   onApplySettings: () => void;
   onSyncWithNTP: () => void;
 }
+
 const SettingsTab: React.FC<SettingsTabProps> = ({
   inputMinutes,
   inputSeconds,
   inputRounds,
+  betweenRoundsEnabled,
+  betweenRoundsTime,
   ntpOffset,
   ntpServer,
   lastNtpSync,
@@ -28,10 +37,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   setInputMinutes,
   setInputSeconds,
   setInputRounds,
+  setBetweenRoundsEnabled,
+  setBetweenRoundsTime,
   onApplySettings,
   onSyncWithNTP
 }) => {
-  return <div className="space-y-6 p-4 min-h-screen bg-gray-900">
+  return (
+    <div className="space-y-6 p-4 min-h-screen bg-gray-900">
       <Card className="bg-gray-800 border-gray-600">
         <CardHeader>
           <CardTitle className="text-4xl text-white mb-4">Timer Settings</CardTitle>
@@ -78,6 +90,63 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
           </div>
 
+          {/* Between Rounds Settings */}
+          <Card className="bg-gray-700 border-gray-500">
+            <CardHeader>
+              <CardTitle className="text-2xl text-white flex items-center gap-3">
+                <Clock className="w-8 h-8" />
+                Between Rounds Timer
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <h3 className="text-xl text-white font-semibold">Enable Between Rounds Timer</h3>
+                  <p className="text-gray-300 text-lg">
+                    Automatically start a count-up timer between rounds
+                  </p>
+                </div>
+                <Switch
+                  checked={betweenRoundsEnabled}
+                  onCheckedChange={setBetweenRoundsEnabled}
+                  className="scale-150"
+                />
+              </div>
+              
+              {betweenRoundsEnabled && (
+                <div className="flex flex-col items-center space-y-4">
+                  <label className="block text-2xl font-medium text-white">
+                    Between Rounds Duration (seconds)
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="300"
+                    value={betweenRoundsTime}
+                    onChange={(e) => setBetweenRoundsTime(parseInt(e.target.value) || 60)}
+                    className="h-20 bg-gray-700 border-gray-500 text-center text-white text-4xl font-bold rounded-2xl max-w-xs"
+                  />
+                  <div className="flex gap-4">
+                    <Button
+                      onClick={() => setBetweenRoundsTime(Math.max(1, betweenRoundsTime - 15))}
+                      size="lg"
+                      className="h-16 w-16 text-4xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                    >
+                      <Minus className="w-8 h-8" />
+                    </Button>
+                    <Button
+                      onClick={() => setBetweenRoundsTime(Math.min(300, betweenRoundsTime + 15))}
+                      size="lg"
+                      className="h-16 w-16 text-4xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                    >
+                      <Plus className="w-8 h-8" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* NTP Status Section */}
           <Card className="bg-gray-700 border-gray-500">
             <CardHeader>
@@ -123,11 +192,17 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </CardContent>
           </Card>
           
-          <Button onClick={onApplySettings} size="lg" className="w-full h-24 text-3xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
+          <Button
+            onClick={onApplySettings}
+            size="lg"
+            className="w-full h-24 text-3xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+          >
             Apply Settings
           </Button>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
+
 export default SettingsTab;

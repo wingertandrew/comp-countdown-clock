@@ -9,9 +9,10 @@ export const formatDuration = (totalSeconds: number) => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-export const getStatusColor = (isRunning: boolean, isPaused: boolean, minutes: number, seconds: number) => {
+export const getStatusColor = (isRunning: boolean, isPaused: boolean, minutes: number, seconds: number, isBetweenRounds?: boolean) => {
   if (!isRunning) return '#6b7280'; // gray-500 for neutral/stopped
   if (isPaused) return '#eab308'; // yellow-500 for paused
+  if (isBetweenRounds) return '#7c3aed'; // violet-600 for between rounds (dark purple)
   
   // Red in last 10 seconds
   if (minutes === 0 && seconds <= 10) return '#ef4444'; // red-500
@@ -19,8 +20,9 @@ export const getStatusColor = (isRunning: boolean, isPaused: boolean, minutes: n
   return '#22c55e'; // green-500 for running
 };
 
-export const getStatusText = (isRunning: boolean, isPaused: boolean) => {
+export const getStatusText = (isRunning: boolean, isPaused: boolean, isBetweenRounds?: boolean) => {
   if (isPaused) return 'PAUSED';
+  if (isBetweenRounds) return 'BETWEEN ROUNDS';
   if (isRunning) return 'RUNNING';
   return 'READY';
 };

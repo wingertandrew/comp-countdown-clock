@@ -95,14 +95,14 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           <div className="col-span-2 flex gap-1 sm:gap-2">
             <Button
               onClick={() => onAdjustTimeBySeconds(-1)}
-              disabled={clockState.isRunning}
+              disabled={clockState.isRunning && !clockState.isPaused}
               className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-2xl md:text-3xl font-bold flex-1"
             >
               <Minus className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
             </Button>
             <Button
               onClick={() => onAdjustTimeBySeconds(1)}
-              disabled={clockState.isRunning}
+              disabled={clockState.isRunning && !clockState.isPaused}
               className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-2xl md:text-3xl font-bold flex-1"
             >
               <Plus className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />

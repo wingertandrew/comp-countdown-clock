@@ -157,6 +157,15 @@ const CountdownClock = () => {
       case 'reset-rounds':
         toast({ title: 'Rounds Reset' });
         break;
+      case 'set-time':
+        setInitialTime({ minutes: command.minutes, seconds: command.seconds });
+        setClockState(prev => ({
+          ...prev,
+          minutes: command.minutes,
+          seconds: command.seconds
+        }));
+        toast({ title: 'Time Set' });
+        break;
       case 'next-round':
         toast({ title: `Round ${clockState.currentRound + 1} Started` });
         break;
@@ -272,6 +281,12 @@ const CountdownClock = () => {
       
       if (response.ok) {
         setInitialTime({ minutes: validMinutes, seconds: validSeconds });
+        // Update displayed time immediately so UI reflects the change
+        setClockState(prev => ({
+          ...prev,
+          minutes: validMinutes,
+          seconds: validSeconds
+        }));
         addDebugLog('UI', 'Time set via API', { minutes: validMinutes, seconds: validSeconds });
       }
     } catch (error) {

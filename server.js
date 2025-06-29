@@ -341,6 +341,8 @@ app.post('/api/set-time', (req, res) => {
   serverClockState.currentPauseDuration = 0;
   serverClockState.pauseStartTime = null;
   broadcast({ action: 'set-time', minutes, seconds });
+  // Immediately broadcast updated status so all clients reflect the change
+  broadcast({ type: 'status', ...serverClockState });
   res.json({ success: true });
 });
 

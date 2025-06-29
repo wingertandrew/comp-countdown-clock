@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +37,41 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                 </li>
               )}
             </ul>
+          </div>
+
+          <div className="bg-blue-900 p-6 rounded-xl">
+            <h3 className="text-2xl font-bold text-blue-300 mb-4">🆕 Server-Side Clock</h3>
+            <div className="text-gray-300 space-y-2">
+              <p className="text-lg">The clock now runs on the server side, ensuring:</p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>Continues running when browser tab is inactive</li>
+                <li>Consistent timing across multiple clients</li>
+                <li>Real-time WebSocket updates to all connected displays</li>
+                <li>Reliable API status even when webpage is closed</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-purple-900 p-6 rounded-xl">
+            <h3 className="text-2xl font-bold text-purple-300 mb-4">📋 Complete API Documentation</h3>
+            <div className="space-y-3">
+              <a 
+                href="/api/docs" 
+                target="_blank" 
+                className="block bg-purple-800 hover:bg-purple-700 p-4 rounded-lg transition-colors"
+              >
+                <code className="text-xl text-purple-200 font-bold">GET /api/docs</code>
+                <p className="text-gray-300 mt-2">Complete API documentation with examples, WebSocket protocol, and integration guides</p>
+              </a>
+              <a 
+                href="/api/status" 
+                target="_blank" 
+                className="block bg-purple-800 hover:bg-purple-700 p-4 rounded-lg transition-colors"
+              >
+                <code className="text-xl text-purple-200 font-bold">GET /api/status</code>
+                <p className="text-gray-300 mt-2">Live server-side clock status (JSON format)</p>
+              </a>
+            </div>
           </div>
           
           <div className="space-y-8">
@@ -143,6 +177,34 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                     <code>GET /clockarena</code>
                   </a>
                   <p className="text-gray-300 mt-2">Compact arena-style countdown display</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-bold text-orange-400 mb-6">🔌 Integration Protocols</h3>
+              <div className="bg-gray-700 p-6 rounded-xl text-lg space-y-4">
+                <div>
+                  <h4 className="text-xl font-bold text-white mb-3">HTTP REST API</h4>
+                  <p className="text-gray-300 mb-2">Standard HTTP requests for control and status</p>
+                  <code className="bg-gray-900 px-2 py-1 rounded">Base URL: http://{ipAddress}:{window.location.port || 8080}/api</code>
+                </div>
+                
+                <div>
+                  <h4 className="text-xl font-bold text-white mb-3">WebSocket Real-time</h4>
+                  <p className="text-gray-300 mb-2">Live updates and bidirectional communication</p>
+                  <code className="bg-gray-900 px-2 py-1 rounded">WS URL: ws://{ipAddress}:{window.location.port || 8080}/ws</code>
+                </div>
+
+                <div className="mt-6 p-4 bg-gray-800 rounded-lg">
+                  <h4 className="text-xl font-bold text-white mb-3">External Application Integration</h4>
+                  <div className="space-y-2 text-gray-300">
+                    <div><strong>Bitfocus Companion:</strong> Use "Generic HTTP" module</div>
+                    <div><strong>OBS Studio:</strong> Use Browser Source with /clockpretty or /clockarena</div>
+                    <div><strong>Custom Apps:</strong> Poll /api/status for live data</div>
+                    <div><strong>Stream Deck:</strong> HTTP requests to control endpoints</div>
+                    <div><strong>Home Assistant:</strong> REST sensor integration</div>
+                  </div>
                 </div>
               </div>
             </div>

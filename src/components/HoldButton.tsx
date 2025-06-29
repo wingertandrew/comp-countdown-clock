@@ -61,9 +61,9 @@ const HoldButton: React.FC<HoldButtonProps> = ({
     >
       {children}
       {progress > 0 && (
-        <div className="absolute inset-0 bg-black bg-opacity-20 rounded-inherit">
+        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-inherit">
           <div 
-            className="h-full bg-white bg-opacity-30 transition-all duration-75 ease-out rounded-inherit"
+            className="h-full bg-white bg-opacity-20 transition-all duration-75 ease-out rounded-inherit"
             style={{ width: `${progress}%` }}
           />
         </div>

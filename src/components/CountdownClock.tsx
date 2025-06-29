@@ -24,7 +24,7 @@ const CountdownClock = () => {
     totalPausedTime: 0,
     currentPauseDuration: 0,
     isBetweenRounds: false,
-    betweenRoundsMinutes: 1,
+    betweenRoundsMinutes: 0,
     betweenRoundsSeconds: 0
   });
 
@@ -40,10 +40,7 @@ const CountdownClock = () => {
   const [ntpServer, setNtpServer] = useState('time.google.com');
   const [ntpDrift, setNtpDrift] = useState(0);
   const [lastNtpSync, setLastNtpSync] = useState('');
-  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const pauseIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   
@@ -54,29 +51,25 @@ const CountdownClock = () => {
     setIpAddress(window.location.hostname || 'localhost');
   }, []);
 
-  // Handle page visibility changes to prevent background timing issues
+  const handleSyncWithNTP = async () => {
+    try {
+      const { offset, lastSync } = await syncWithNTP(ntpServer);
+      setNtpOffset(offset);
+      setLastNtpSync(lastSync);
+      addDebugLog('API', 'NTP sync completed', { offset, server: ntpServer });
+    } catch (error) {
+      addDebugLog('API', 'NTP sync failed', { error: error.message, fallback: 'local time' });
+      setNtpOffset(0);
+    }
+  };
+
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setLastUpdateTime(Date.now());
-        addDebugLog('UI', 'Page hidden', { time: new Date().toISOString() });
-      } else {
-        const hiddenDuration = Date.now() - lastUpdateTime;
-        if (hiddenDuration > 5000) {
-          addDebugLog('UI', 'Page visible after extended period', { 
-            hiddenDuration,
-            syncingWithNTP: true
-          });
-          handleSyncWithNTP();
-        }
-      }
-    };
+    handleSyncWithNTP();
+    const ntpInterval = setInterval(handleSyncWithNTP, 1800000); // 30 minutes
+    return () => clearInterval(ntpInterval);
+  }, [ntpServer]);
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [lastUpdateTime]);
-
-  // WebSocket for API communication
+  // WebSocket for server communication
   useEffect(() => {
     const isProduction = window.location.protocol === 'http:' || window.location.hostname === 'localhost' || window.location.hostname.includes('raspberrypi');
     
@@ -87,15 +80,38 @@ const CountdownClock = () => {
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('WebSocket connected for external control');
-          addDebugLog('WEBSOCKET', 'Connected', { endpoint: `${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws` });
+          console.log('WebSocket connected - syncing with server');
+          addDebugLog('WEBSOCKET', 'Connected to server', { endpoint: `${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws` });
+          
+          // Sync current settings to server
+          ws.send(JSON.stringify({
+            type: 'sync-settings',
+            initialTime,
+            totalRounds: inputRounds,
+            betweenRoundsEnabled,
+            betweenRoundsTime
+          }));
         };
 
         ws.onmessage = (event) => {
           try {
-            const command = JSON.parse(event.data);
-            addDebugLog('WEBSOCKET', 'Received command', command);
-            handleExternalCommand(command);
+            const data = JSON.parse(event.data);
+            addDebugLog('WEBSOCKET', 'Received from server', data);
+            
+            if (data.type === 'status') {
+              // Update local state from server
+              setClockState(prev => ({
+                ...prev,
+                ...data,
+                pauseStartTime: data.pauseStartTime
+              }));
+              
+              if (data.initialTime) {
+                setInitialTime(data.initialTime);
+              }
+            } else {
+              handleExternalCommand(data);
+            }
           } catch (error) {
             console.error('Invalid WebSocket message:', error);
             addDebugLog('WEBSOCKET', 'Invalid message', { error: error.message });
@@ -122,310 +138,54 @@ const CountdownClock = () => {
     }
   }, []);
 
-  const handleSyncWithNTP = async () => {
-    try {
-      const { offset, lastSync } = await syncWithNTP(ntpServer);
-      setNtpOffset(offset);
-      setLastNtpSync(lastSync);
-      addDebugLog('API', 'NTP sync completed', { offset, server: ntpServer });
-    } catch (error) {
-      addDebugLog('API', 'NTP sync failed', { error: error.message, fallback: 'local time' });
-      setNtpOffset(0);
-    }
-  };
-
-  useEffect(() => {
-    handleSyncWithNTP();
-    const ntpInterval = setInterval(handleSyncWithNTP, 1800000); // 30 minutes
-    return () => clearInterval(ntpInterval);
-  }, [ntpServer]);
-
-  // Track pause duration
-  useEffect(() => {
-    if (clockState.isPaused && clockState.pauseStartTime) {
-      pauseIntervalRef.current = setInterval(() => {
-        const currentTime = getNTPTime(ntpOffset);
-        const pauseDuration = Math.floor((currentTime - clockState.pauseStartTime!) / 1000);
-        setClockState(prev => ({
-          ...prev,
-          currentPauseDuration: pauseDuration
-        }));
-      }, 1000);
-    } else {
-      if (pauseIntervalRef.current) {
-        clearInterval(pauseIntervalRef.current);
-        pauseIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (pauseIntervalRef.current) {
-        clearInterval(pauseIntervalRef.current);
-      }
-    };
-  }, [clockState.isPaused, clockState.pauseStartTime, ntpOffset]);
-
   const handleExternalCommand = (command: any) => {
     addDebugLog('API', 'External command received', command);
+    // Commands are now handled server-side, client just receives updates
     switch (command.action) {
       case 'start':
-        startTimer();
+        toast({ title: "Timer Started" });
         break;
       case 'pause':
-        pauseTimer();
+        toast({ title: clockState.isPaused ? "Timer Resumed" : "Timer Paused" });
         break;
       case 'reset':
-        resetTimer();
+        toast({ title: 'Timer Reset' });
         break;
       case 'reset-time':
-        resetTime();
+        toast({ title: 'Time Reset' });
         break;
       case 'reset-rounds':
-        resetRounds();
+        toast({ title: 'Rounds Reset' });
         break;
       case 'next-round':
-        nextRound();
+        toast({ title: `Round ${clockState.currentRound + 1} Started` });
         break;
       case 'previous-round':
-        previousRound();
-        break;
-      case 'set-time':
-        if (command.minutes !== undefined && command.seconds !== undefined) {
-          setTime(command.minutes, command.seconds);
-        }
-        break;
-      case 'set-rounds':
-        if (command.rounds !== undefined) {
-          setRounds(command.rounds);
-        }
-        break;
-      case 'get-status':
-        broadcastStatus();
+        toast({ title: `Round ${clockState.currentRound - 1} Started` });
         break;
     }
   };
 
-  const broadcastStatus = () => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      const status = {
-        type: 'status',
-        ...clockState,
-        totalTime: initialTime,
-        ntpTime: getNTPTime(ntpOffset)
-      };
-      wsRef.current.send(JSON.stringify(status));
-      addDebugLog('WEBSOCKET', 'Status broadcast', status);
+  const startTimer = async () => {
+    try {
+      const response = await fetch('/api/start', { method: 'POST' });
+      if (response.ok) {
+        addDebugLog('UI', 'Timer started via API');
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to start timer', { error: error.message });
     }
   };
 
-  useEffect(() => {
-    broadcastStatus();
-  }, [clockState]);
-
-  useEffect(() => {
-    if (clockState.isRunning && !clockState.isPaused) {
-      intervalRef.current = setInterval(() => {
-        setLastUpdateTime(Date.now());
-        setClockState(prev => {
-          if (prev.isBetweenRounds) {
-            // Count up during between rounds
-            const newSeconds = prev.seconds + 1;
-            const newMinutes = newSeconds >= 60 ? prev.minutes + 1 : prev.minutes;
-            const adjustedSeconds = newSeconds >= 60 ? 0 : newSeconds;
-
-            const totalBetweenRoundsTime = Math.floor(betweenRoundsTime / 60) * 60 + (betweenRoundsTime % 60);
-            const currentBetweenRoundsTime = newMinutes * 60 + adjustedSeconds;
-
-            if (currentBetweenRoundsTime >= totalBetweenRoundsTime) {
-              // Between rounds time complete, advance to next round
-              addDebugLog('UI', 'Between rounds completed - Advancing to next round', {
-                completedRound: prev.currentRound,
-                nextRound: prev.currentRound + 1
-              });
-              
-              if (prev.currentRound < prev.totalRounds) {
-                toast({
-                  title: `Between Rounds Complete!`,
-                  description: `Starting Round ${prev.currentRound + 1}`,
-                });
-                return {
-                  ...prev,
-                  currentRound: prev.currentRound + 1,
-                  minutes: initialTime.minutes,
-                  seconds: initialTime.seconds,
-                  isBetweenRounds: false,
-                  betweenRoundsMinutes: 0,
-                  betweenRoundsSeconds: 0,
-                  elapsedMinutes: 0,
-                  elapsedSeconds: 0,
-                  isRunning: false,
-                  isPaused: false,
-                  totalPausedTime: 0,
-                  currentPauseDuration: 0,
-                  pauseStartTime: null
-                };
-              } else {
-                toast({
-                  title: "All Rounds Complete!",
-                  description: "Tournament finished",
-                });
-                return {
-                  ...prev,
-                  isRunning: false,
-                  isBetweenRounds: false,
-                  betweenRoundsMinutes: Math.floor(totalBetweenRoundsTime / 60),
-                  betweenRoundsSeconds: totalBetweenRoundsTime % 60
-                };
-              }
-            }
-
-            return {
-              ...prev,
-              minutes: newMinutes,
-              seconds: adjustedSeconds,
-              betweenRoundsMinutes: newMinutes,
-              betweenRoundsSeconds: adjustedSeconds
-            };
-          } else {
-            // Regular countdown logic
-            const newSeconds = prev.seconds - 1;
-            const newMinutes = newSeconds < 0 ? prev.minutes - 1 : prev.minutes;
-            const adjustedSeconds = newSeconds < 0 ? 59 : newSeconds;
-
-            const totalElapsed = (initialTime.minutes * 60 + initialTime.seconds) - (newMinutes * 60 + adjustedSeconds);
-            const elapsedMinutes = Math.floor(totalElapsed / 60);
-            const elapsedSeconds = totalElapsed % 60;
-
-            if (newMinutes < 0) {
-              if (prev.currentRound < prev.totalRounds) {
-                if (betweenRoundsEnabled) {
-                  // Start between rounds timer
-                  addDebugLog('UI', 'Round completed - Starting between rounds timer', { 
-                    completedRound: prev.currentRound,
-                    betweenRoundsTime: betweenRoundsTime 
-                  });
-                  toast({
-                    title: `Round ${prev.currentRound} Complete!`,
-                    description: `Between rounds timer started`,
-                  });
-                  return {
-                    ...prev,
-                    minutes: 0,
-                    seconds: 0,
-                    isBetweenRounds: true,
-                    betweenRoundsMinutes: 0,
-                    betweenRoundsSeconds: 0,
-                    elapsedMinutes,
-                    elapsedSeconds,
-                    isRunning: true,
-                    isPaused: false
-                  };
-                } else {
-                  // Auto-advance to next round without between rounds timer
-                  addDebugLog('UI', 'Round completed - Auto advancing', { 
-                    completedRound: prev.currentRound, 
-                    nextRound: prev.currentRound + 1 
-                  });
-                  toast({
-                    title: `Round ${prev.currentRound} Complete!`,
-                    description: `Auto-advancing to round ${prev.currentRound + 1}`,
-                  });
-                  return {
-                    ...prev,
-                    currentRound: prev.currentRound + 1,
-                    minutes: initialTime.minutes,
-                    seconds: initialTime.seconds,
-                    elapsedMinutes: 0,
-                    elapsedSeconds: 0,
-                    isRunning: true,
-                    isPaused: false
-                  };
-                }
-              } else {
-                addDebugLog('UI', 'All rounds completed', { totalRounds: prev.totalRounds });
-                toast({
-                  title: "All Rounds Complete!",
-                  description: "Countdown finished",
-                });
-                return {
-                  ...prev,
-                  isRunning: false,
-                  minutes: 0,
-                  seconds: 0,
-                  elapsedMinutes,
-                  elapsedSeconds
-                };
-              }
-            }
-
-            return {
-              ...prev,
-              minutes: newMinutes,
-              seconds: adjustedSeconds,
-              elapsedMinutes,
-              elapsedSeconds
-            };
-          }
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+  const pauseTimer = async () => {
+    try {
+      const response = await fetch('/api/pause', { method: 'POST' });
+      if (response.ok) {
+        addDebugLog('UI', 'Timer paused/resumed via API');
       }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to pause/resume timer', { error: error.message });
     }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [clockState.isRunning, clockState.isPaused, initialTime, toast, betweenRoundsEnabled, betweenRoundsTime]);
-
-  const startTimer = () => {
-    addDebugLog('UI', 'Timer started');
-    setClockState(prev => {
-      let newTotalPausedTime = prev.totalPausedTime;
-      if (prev.isPaused && prev.pauseStartTime) {
-        newTotalPausedTime += Math.floor((getNTPTime(ntpOffset) - prev.pauseStartTime) / 1000);
-      }
-      return {
-        ...prev,
-        isRunning: true,
-        isPaused: false,
-        pauseStartTime: null,
-        totalPausedTime: newTotalPausedTime,
-        currentPauseDuration: 0
-      };
-    });
-    toast({ title: "Timer Started" });
-  };
-
-  const pauseTimer = () => {
-    const wasPaused = clockState.isPaused;
-    addDebugLog('UI', wasPaused ? 'Timer resumed' : 'Timer paused');
-    setClockState(prev => {
-      if (prev.isPaused) {
-        let newTotalPausedTime = prev.totalPausedTime;
-        if (prev.pauseStartTime) {
-          newTotalPausedTime += Math.floor((getNTPTime(ntpOffset) - prev.pauseStartTime) / 1000);
-        }
-        return {
-          ...prev,
-          isPaused: false,
-          pauseStartTime: null,
-          totalPausedTime: newTotalPausedTime,
-          currentPauseDuration: 0
-        };
-      } else {
-        return {
-          ...prev,
-          isPaused: true,
-          pauseStartTime: getNTPTime(ntpOffset)
-        };
-      }
-    });
-    toast({ title: wasPaused ? "Timer Resumed" : "Timer Paused" });
   };
 
   const togglePlayPause = () => {
@@ -436,98 +196,55 @@ const CountdownClock = () => {
     }
   };
 
-  const resetTime = () => {
-    addDebugLog('UI', 'Time reset', { resetToTime: initialTime });
-    setClockState(prev => ({
-      ...prev,
-      isRunning: false,
-      isPaused: false,
-      minutes: initialTime.minutes,
-      seconds: initialTime.seconds,
-      elapsedMinutes: 0,
-      elapsedSeconds: 0,
-      pauseStartTime: null,
-      totalPausedTime: 0,
-      currentPauseDuration: 0
-    }));
-    toast({ title: 'Time Reset' });
+  const resetTime = async () => {
+    try {
+      const response = await fetch('/api/reset-time', { method: 'POST' });
+      if (response.ok) {
+        addDebugLog('UI', 'Time reset via API');
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to reset time', { error: error.message });
+    }
   };
 
-  const resetRounds = () => {
-    addDebugLog('UI', 'Rounds reset', { totalRounds: clockState.totalRounds });
-    setClockState(prev => ({
-      ...prev,
-      currentRound: 1,
-      isRunning: false,
-      isPaused: false,
-      minutes: initialTime.minutes,
-      seconds: initialTime.seconds,
-      elapsedMinutes: 0,
-      elapsedSeconds: 0,
-      pauseStartTime: null,
-      totalPausedTime: 0,
-      currentPauseDuration: 0
-    }));
-    toast({ title: 'Rounds Reset' });
+  const resetRounds = async () => {
+    try {
+      const response = await fetch('/api/reset-rounds', { method: 'POST' });
+      if (response.ok) {
+        addDebugLog('UI', 'Rounds reset via API');
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to reset rounds', { error: error.message });
+    }
   };
 
   const resetTimer = () => {
     resetRounds();
   };
 
-  const nextRound = () => {
-    if (clockState.currentRound < clockState.totalRounds) {
-      addDebugLog('UI', 'Next round', {
-        from: clockState.currentRound,
-        to: clockState.currentRound + 1
-      });
-      setClockState(prev => ({
-        ...prev,
-        currentRound: prev.currentRound + 1,
-        minutes: initialTime.minutes,
-        seconds: initialTime.seconds,
-        elapsedMinutes: 0,
-        elapsedSeconds: 0,
-        isRunning: false,
-        isPaused: false,
-        totalPausedTime: 0,
-        currentPauseDuration: 0,
-        pauseStartTime: null,
-        isBetweenRounds: false,
-        betweenRoundsMinutes: 0,
-        betweenRoundsSeconds: 0
-      }));
-      toast({ title: `Round ${clockState.currentRound + 1} Started` });
+  const nextRound = async () => {
+    try {
+      const response = await fetch('/api/next-round', { method: 'POST' });
+      if (response.ok) {
+        addDebugLog('UI', 'Next round via API');
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to go to next round', { error: error.message });
     }
   };
 
-  const previousRound = () => {
-    if (clockState.currentRound > 1) {
-      addDebugLog('UI', 'Previous round', {
-        from: clockState.currentRound,
-        to: clockState.currentRound - 1
-      });
-      setClockState(prev => ({
-        ...prev,
-        currentRound: prev.currentRound - 1,
-        minutes: initialTime.minutes,
-        seconds: initialTime.seconds,
-        elapsedMinutes: 0,
-        elapsedSeconds: 0,
-        isRunning: false,
-        isPaused: false,
-        totalPausedTime: 0,
-        currentPauseDuration: 0,
-        pauseStartTime: null,
-        isBetweenRounds: false,
-        betweenRoundsMinutes: 0,
-        betweenRoundsSeconds: 0
-      }));
-      toast({ title: `Round ${clockState.currentRound - 1} Started` });
+  const previousRound = async () => {
+    try {
+      const response = await fetch('/api/previous-round', { method: 'POST' });
+      if (response.ok) {
+        addDebugLog('UI', 'Previous round via API');
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to go to previous round', { error: error.message });
     }
   };
 
-  const adjustTimeBySeconds = (secondsToAdd: number) => {
+  const adjustTimeBySeconds = async (secondsToAdd: number) => {
     if (!clockState.isRunning) {
       const totalSeconds = clockState.minutes * 60 + clockState.seconds + secondsToAdd;
       const newMinutes = Math.floor(Math.max(0, totalSeconds) / 60);
@@ -538,47 +255,70 @@ const CountdownClock = () => {
         newTime: { minutes: newMinutes, seconds: newSeconds }
       });
       
-      setTime(newMinutes, newSeconds);
+      await setTime(newMinutes, newSeconds);
     }
   };
 
-  const setTime = (minutes: number, seconds: number) => {
+  const setTime = async (minutes: number, seconds: number) => {
     const validMinutes = Math.max(0, Math.min(59, minutes));
     const validSeconds = Math.max(0, Math.min(59, seconds));
     
-    setInitialTime({ minutes: validMinutes, seconds: validSeconds });
-    setClockState(prev => ({
-      ...prev,
-      minutes: validMinutes,
-      seconds: validSeconds,
-      isRunning: false,
-      isPaused: false,
-      elapsedMinutes: 0,
-      elapsedSeconds: 0,
-      pauseStartTime: null,
-      totalPausedTime: 0,
-      currentPauseDuration: 0
-    }));
+    try {
+      const response = await fetch('/api/set-time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes: validMinutes, seconds: validSeconds })
+      });
+      
+      if (response.ok) {
+        setInitialTime({ minutes: validMinutes, seconds: validSeconds });
+        addDebugLog('UI', 'Time set via API', { minutes: validMinutes, seconds: validSeconds });
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to set time', { error: error.message });
+    }
   };
 
-  const setRounds = (rounds: number) => {
+  const setRounds = async (rounds: number) => {
     const validRounds = Math.max(1, Math.min(15, rounds));
-    setClockState(prev => ({
-      ...prev,
-      totalRounds: validRounds,
-      currentRound: 1
-    }));
+    
+    try {
+      const response = await fetch('/api/set-rounds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rounds: validRounds })
+      });
+      
+      if (response.ok) {
+        addDebugLog('UI', 'Rounds set via API', { rounds: validRounds });
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to set rounds', { error: error.message });
+    }
   };
 
-  const applySettings = () => {
+  const applySettings = async () => {
     addDebugLog('UI', 'Settings applied', { 
       time: { minutes: inputMinutes, seconds: inputSeconds },
       rounds: inputRounds,
       betweenRoundsEnabled,
       betweenRoundsTime
     });
-    setTime(inputMinutes, inputSeconds);
-    setRounds(inputRounds);
+    
+    await setTime(inputMinutes, inputSeconds);
+    await setRounds(inputRounds);
+    
+    // Sync between rounds settings
+    try {
+      await fetch('/api/set-between-rounds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: betweenRoundsEnabled, time: betweenRoundsTime })
+      });
+    } catch (error) {
+      addDebugLog('UI', 'Failed to set between rounds settings', { error: error.message });
+    }
+    
     setActiveTab('clock');
     toast({ title: "Settings Applied" });
   };

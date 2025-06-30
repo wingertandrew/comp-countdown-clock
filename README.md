@@ -5,13 +5,15 @@ A touch-friendly countdown clock application. Originally built for Raspberry Pi,
 
 ## Features
 
-- **Large, Touch-Friendly Interface**: Optimized for touchscreen displays
-- **Multi-Round Support**: Configure 1-15 rounds with automatic progression
-- **External Control**: HTTP API for Stream Deck and other external devices
-- **Real-Time Updates**: WebSocket support for live status updates
-- **Responsive Design**: Works on various screen sizes
-- **Visual Feedback**: Toast notifications and clear status indicators
-- **Network Time Sync**: Automatically syncs with `time.google.com` for accurate timing
+- **Large, Touch-Friendly Interface** – Optimized for touchscreen displays
+- **Multi‑Round Timer** – Configure 1‑15 rounds with an optional between‑rounds clock
+- **Server‑Side Clock** – Countdown continues even if your browser is closed
+- **External Control API** – HTTP endpoints for start, pause, reset and more
+- **WebSocket Updates** – All connected clients stay perfectly in sync
+- **Display Pages** – Read‑only layouts at `/clockpretty` and `/clockarena`
+- **Debug Logging** – Built‑in log viewer with CSV export
+- **Network Time Sync** – Sync with an NTP server for accurate timing
+- **Responsive Design & Toasts** – Works on any screen with clear feedback
 
 ## Installation & Setup
 
@@ -40,14 +42,21 @@ The application will be available at `http://localhost:8080`
 
 ### Touch Interface
 1. **Clock Tab**: Main countdown display with large timer and controls
-2. **Settings Tab**: Configure timer duration and number of rounds
-3. **API Info Tab**: Complete documentation for external control
+2. **Settings Tab**: Configure timer, rounds and between-rounds options
+3. **API Info Tab**: Copy-ready HTTP commands and docs
+4. **Debug Tab**: Inspect log entries and export CSV
+
+### Additional Displays
+- `GET /clockpretty` – Large dark mode display for broadcasting
+- `GET /clockarena` – Compact arena-style overlay
 
 ### Controls
 - **Start**: Begin countdown
 - **Pause/Resume**: Pause or resume timer
-- **Reset**: Reset to initial settings
+- **Reset Time**: Reset only the timer
+- **Reset Rounds**: Reset timer and round counter
 - **Next Round**: Skip to next round
+- **Previous Round**: Go back one round
 
 ## HTTP API Reference
 
@@ -64,8 +73,17 @@ curl -X POST http://localhost:8080/api/pause
 # Reset timer
 curl -X POST http://localhost:8080/api/reset
 
+# Reset only the timer
+curl -X POST http://localhost:8080/api/reset-time
+
+# Reset timer and round count
+curl -X POST http://localhost:8080/api/reset-rounds
+
 # Next round
 curl -X POST http://localhost:8080/api/next-round
+
+# Previous round
+curl -X POST http://localhost:8080/api/previous-round
 ```
 
 ### Configuration
@@ -79,6 +97,11 @@ curl -X POST http://localhost:8080/api/set-time \
 curl -X POST http://localhost:8080/api/set-rounds \
   -H "Content-Type: application/json" \
   -d '{"rounds": 10}'
+
+# Set between-rounds timer
+curl -X POST http://localhost:8080/api/set-between-rounds \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true, "time": 60}'
 ```
 
 ### Status
@@ -91,6 +114,12 @@ curl http://localhost:8080/api/status
 ```bash
 # Sync time using the default server (time.google.com)
 curl http://localhost:8080/api/ntp-sync
+```
+
+### API Docs
+```bash
+# Open interactive documentation
+curl http://localhost:8080/api/docs
 ```
 
 ## Stream Deck Integration
@@ -108,7 +137,7 @@ Bitfocus Companion is free control software for the Elgato Stream Deck. Use it t
 7. Keep the port `8080` unless you changed it in `server.js`.
 8. Test each button in Companion's emulator before deploying.
 
-For best results, create separate buttons for `start`, `pause`, `reset`, and `next-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
+For best results, create separate buttons for `start`, `pause`, `reset-rounds`, `next-round` and `previous-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
 
 You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/api/status` every second and show the current `minutes`, `seconds`, or `round` fields directly on your Stream Deck keys. Combine feedback variables with button styles to change text or colors as the timer updates.
 
@@ -116,8 +145,9 @@ You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/ap
 ### Example Stream Deck Layout
 - Button 1: Start Timer (POST /api/start)
 - Button 2: Pause Timer (POST /api/pause)
-- Button 3: Reset Timer (POST /api/reset)
+- Button 3: Reset Rounds (POST /api/reset-rounds)
 - Button 4: Next Round (POST /api/next-round)
+- Button 5: Previous Round (POST /api/previous-round)
 
 ## Technical Implementation
 

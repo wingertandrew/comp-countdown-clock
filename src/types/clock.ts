@@ -14,6 +14,8 @@ export interface ClockState {
   isBetweenRounds: boolean;
   betweenRoundsMinutes: number;
   betweenRoundsSeconds: number;
+  betweenRoundsEnabled: boolean;
+  betweenRoundsTime: number;
 }
 
 export interface DebugLogEntry {

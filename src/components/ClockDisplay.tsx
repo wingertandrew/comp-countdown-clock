@@ -9,6 +9,8 @@ import { formatTime, formatDuration, getStatusColor, getStatusText } from '@/uti
 interface ClockDisplayProps {
   clockState: ClockState;
   ipAddress: string;
+  betweenRoundsEnabled: boolean;
+  betweenRoundsTime: number;
   onTogglePlayPause: () => void;
   onNextRound: () => void;
   onPreviousRound: () => void;
@@ -20,6 +22,8 @@ interface ClockDisplayProps {
 const ClockDisplay: React.FC<ClockDisplayProps> = ({
   clockState,
   ipAddress,
+  betweenRoundsEnabled,
+  betweenRoundsTime,
   onTogglePlayPause,
   onNextRound,
   onPreviousRound,
@@ -184,6 +188,11 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           {clockState.totalPausedTime > 0 && (
             <div className="text-yellow-400 text-lg sm:text-xl md:text-2xl">
               Total Paused: {formatDuration(clockState.totalPausedTime)}
+            </div>
+          )}
+          {betweenRoundsEnabled && (
+            <div className="text-purple-400 text-lg sm:text-xl md:text-2xl mt-1">
+              Between Rounds Timer: {betweenRoundsTime}s
             </div>
           )}
         </div>

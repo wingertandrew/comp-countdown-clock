@@ -25,14 +25,16 @@ const CountdownClock = () => {
     currentPauseDuration: 0,
     isBetweenRounds: false,
     betweenRoundsMinutes: 0,
-    betweenRoundsSeconds: 0
+    betweenRoundsSeconds: 0,
+    betweenRoundsEnabled: true,
+    betweenRoundsTime: 60
   });
 
   const [initialTime, setInitialTime] = useState({ minutes: 5, seconds: 0 });
   const [inputMinutes, setInputMinutes] = useState(5);
   const [inputSeconds, setInputSeconds] = useState(0);
   const [inputRounds, setInputRounds] = useState(3);
-  const [betweenRoundsEnabled, setBetweenRoundsEnabled] = useState(false);
+  const [betweenRoundsEnabled, setBetweenRoundsEnabled] = useState(true);
   const [betweenRoundsTime, setBetweenRoundsTime] = useState(60);
   const [activeTab, setActiveTab] = useState('clock');
   const [ntpOffset, setNtpOffset] = useState(0);
@@ -105,6 +107,13 @@ const CountdownClock = () => {
                 ...data,
                 pauseStartTime: data.pauseStartTime
               }));
+
+              if (typeof data.betweenRoundsEnabled === 'boolean') {
+                setBetweenRoundsEnabled(data.betweenRoundsEnabled);
+              }
+              if (typeof data.betweenRoundsTime === 'number') {
+                setBetweenRoundsTime(data.betweenRoundsTime);
+              }
               
               if (data.initialTime) {
                 setInitialTime(data.initialTime);
@@ -254,7 +263,7 @@ const CountdownClock = () => {
   };
 
   const adjustTimeBySeconds = async (secondsToAdd: number) => {
-    if (!clockState.isRunning) {
+    if (!clockState.isRunning || clockState.isPaused) {
       const totalSeconds = clockState.minutes * 60 + clockState.seconds + secondsToAdd;
       const newMinutes = Math.floor(Math.max(0, totalSeconds) / 60);
       const newSeconds = Math.max(0, totalSeconds) % 60;
@@ -366,6 +375,8 @@ const CountdownClock = () => {
           <ClockDisplay
             clockState={clockState}
             ipAddress={ipAddress}
+            betweenRoundsEnabled={betweenRoundsEnabled}
+            betweenRoundsTime={betweenRoundsTime}
             onTogglePlayPause={togglePlayPause}
             onNextRound={nextRound}
             onPreviousRound={previousRound}

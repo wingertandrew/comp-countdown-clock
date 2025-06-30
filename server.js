@@ -32,7 +32,7 @@ let serverClockState = {
   betweenRoundsMinutes: 0,
   betweenRoundsSeconds: 0,
   initialTime: { minutes: 5, seconds: 0 },
-  betweenRoundsEnabled: false,
+  betweenRoundsEnabled: true,
   betweenRoundsTime: 60,
   lastUpdateTime: Date.now()
 };
@@ -196,8 +196,12 @@ wss.on('connection', ws => {
         // Sync settings from client (initial time, rounds, between rounds config)
         serverClockState.initialTime = data.initialTime || serverClockState.initialTime;
         serverClockState.totalRounds = data.totalRounds || serverClockState.totalRounds;
-        serverClockState.betweenRoundsEnabled = data.betweenRoundsEnabled || false;
-        serverClockState.betweenRoundsTime = data.betweenRoundsTime || 60;
+        if (typeof data.betweenRoundsEnabled === 'boolean') {
+          serverClockState.betweenRoundsEnabled = data.betweenRoundsEnabled;
+        }
+        if (typeof data.betweenRoundsTime === 'number') {
+          serverClockState.betweenRoundsTime = data.betweenRoundsTime;
+        }
       }
     } catch (err) {
       console.error('Invalid WS message', err);
@@ -356,8 +360,12 @@ app.post('/api/set-rounds', (req, res) => {
 
 app.post('/api/set-between-rounds', (req, res) => {
   const { enabled, time } = req.body;
-  serverClockState.betweenRoundsEnabled = enabled || false;
-  serverClockState.betweenRoundsTime = time || 60;
+  if (typeof enabled === 'boolean') {
+    serverClockState.betweenRoundsEnabled = enabled;
+  }
+  if (typeof time === 'number') {
+    serverClockState.betweenRoundsTime = time;
+  }
   res.json({ success: true });
 });
 
@@ -460,6 +468,8 @@ app.get('/api/docs', (req, res) => {
             isBetweenRounds: "Whether in between-rounds phase",
             betweenRoundsMinutes: "Between rounds timer minutes",
             betweenRoundsSeconds: "Between rounds timer seconds",
+            betweenRoundsEnabled: "Between rounds timer enabled",
+            betweenRoundsTime: "Between rounds timer duration (seconds)",
             totalPausedTime: "Total time paused (seconds)",
             currentPauseDuration: "Current pause duration (seconds)",
             serverTime: "Server timestamp",

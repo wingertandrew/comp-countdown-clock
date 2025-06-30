@@ -39,18 +39,6 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
             </ul>
           </div>
 
-          <div className="bg-blue-900 p-6 rounded-xl">
-            <h3 className="text-2xl font-bold text-blue-300 mb-4">🆕 Server-Side Clock</h3>
-            <div className="text-gray-300 space-y-2">
-              <p className="text-lg">The clock now runs on the server side, ensuring:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Continues running when browser tab is inactive</li>
-                <li>Consistent timing across multiple clients</li>
-                <li>Real-time WebSocket updates to all connected displays</li>
-                <li>Reliable API status even when webpage is closed</li>
-              </ul>
-            </div>
-          </div>
 
           <div className="bg-purple-900 p-6 rounded-xl">
             <h3 className="text-2xl font-bold text-purple-300 mb-4">📋 Complete API Documentation</h3>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Bug } from 'lucide-react';
@@ -73,17 +74,17 @@ const CountdownClock = () => {
 
   // WebSocket for server communication
   useEffect(() => {
-    const isProduction = window.location.protocol === 'http:' || window.location.hostname === 'localhost' || window.location.hostname.includes('raspberrypi');
-    
-    if (isProduction) {
+    const connectWebSocket = () => {
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws`);
+        const wsUrl = `${protocol}//${window.location.host}`;
+        console.log('Connecting to WebSocket:', wsUrl);
+        const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
           console.log('WebSocket connected - syncing with server');
-          addDebugLog('WEBSOCKET', 'Connected to server', { endpoint: `${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws` });
+          addDebugLog('WEBSOCKET', 'Connected to server', { endpoint: wsUrl });
           
           // Sync current settings to server
           ws.send(JSON.stringify({
@@ -132,19 +133,24 @@ const CountdownClock = () => {
           addDebugLog('WEBSOCKET', 'Connection failed', { error });
         };
 
+        ws.onclose = () => {
+          console.log('WebSocket connection closed, attempting to reconnect...');
+          addDebugLog('WEBSOCKET', 'Connection closed, reconnecting');
+          setTimeout(connectWebSocket, 2000);
+        };
+
         return () => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();
           }
         };
       } catch (error) {
-        console.log('WebSocket not available in this environment');
+        console.log('WebSocket not available:', error);
         addDebugLog('WEBSOCKET', 'Not available', { error: error.message });
       }
-    } else {
-      console.log('WebSocket disabled in development environment');
-      addDebugLog('WEBSOCKET', 'Disabled in development');
-    }
+    };
+
+    connectWebSocket();
   }, []);
 
   const handleExternalCommand = (command: any) => {
@@ -180,6 +186,9 @@ const CountdownClock = () => {
         break;
       case 'previous-round':
         toast({ title: `Round ${clockState.currentRound - 1} Started` });
+        break;
+      case 'adjust-time':
+        toast({ title: 'Time Adjusted' });
         break;
     }
   };
@@ -263,17 +272,20 @@ const CountdownClock = () => {
   };
 
   const adjustTimeBySeconds = async (secondsToAdd: number) => {
-    if (!clockState.isRunning || clockState.isPaused) {
-      const totalSeconds = clockState.minutes * 60 + clockState.seconds + secondsToAdd;
-      const newMinutes = Math.floor(Math.max(0, totalSeconds) / 60);
-      const newSeconds = Math.max(0, totalSeconds) % 60;
-      
-      addDebugLog('UI', 'Time adjusted by seconds', { 
-        adjustment: secondsToAdd,
-        newTime: { minutes: newMinutes, seconds: newSeconds }
+    try {
+      const response = await fetch('/api/adjust-time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seconds: secondsToAdd })
       });
       
-      await setTime(newMinutes, newSeconds);
+      if (response.ok) {
+        addDebugLog('UI', 'Time adjusted by seconds via API', { 
+          adjustment: secondsToAdd
+        });
+      }
+    } catch (error) {
+      addDebugLog('UI', 'Failed to adjust time', { error: error.message });
     }
   };
 

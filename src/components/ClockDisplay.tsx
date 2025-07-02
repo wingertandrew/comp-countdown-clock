@@ -111,6 +111,13 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           </div>
         </div>
 
+        {/* Round Info */}
+        <div className="text-center text-white mb-4 sm:mb-6 md:mb-8">
+          <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold">
+            ROUND {clockState.currentRound} of {clockState.totalRounds}
+          </div>
+        </div>
+
         {/* Control Buttons - Responsive grid */}
         <div className="grid grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
           {/* Time Adjustment Group - Disabled during between rounds */}
@@ -182,8 +189,8 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           </HoldButton>
         </div>
 
-        {/* Round Info and Stats - Larger text */}
-        <div className="flex items-start justify-between text-white">
+        {/* Stats - Left side */}
+        <div className="flex items-start text-white">
           {/* Left side - Total Paused and Between Rounds info */}
           <div className="flex flex-col gap-1">
             {clockState.totalPausedTime > 0 && (
@@ -197,16 +204,6 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
               </div>
             )}
           </div>
-          
-          {/* Center - Round info */}
-          <div className="text-center flex-1">
-            <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-2">
-              ROUND {clockState.currentRound} of {clockState.totalRounds}
-            </div>
-          </div>
-          
-          {/* Right side - placeholder for balance */}
-          <div className="w-0"></div>
         </div>
       </div>
     </div>

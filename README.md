@@ -119,13 +119,11 @@ curl http://localhost:8080/api/ntp-sync
 If the UDP request to the NTP server fails (for example when port 123 is
 blocked), the server automatically falls back to
 `https://worldtimeapi.org/api/ip` to retrieve the current time via HTTPS.
-```
 
 ### API Docs
 ```bash
 # Open interactive documentation
 curl http://localhost:8080/api/docs
-```
 
 ## Stream Deck Integration
 

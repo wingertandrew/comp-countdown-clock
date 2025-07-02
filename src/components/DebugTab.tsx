@@ -53,6 +53,8 @@ const DebugTab: React.FC<DebugTabProps> = ({
                   <div>ID: {client.id || 'Unknown'}</div>
                   <div>Connected: {client.connectedAt ? new Date(client.connectedAt).toLocaleTimeString() : 'Unknown'}</div>
                   <div>IP: {client.ip || 'Unknown'}</div>
+                  <div>Hostname: {client.hostname || 'Unknown'}</div>
+                  <div>URL: {client.url || 'Unknown'}</div>
                 </div>
               </div>
             ))}

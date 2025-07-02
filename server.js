@@ -43,10 +43,21 @@ let serverTimer = null;
 // Track connected WebSocket clients
 const connectedClients = new Map();
 
+function normalizeIp(ip) {
+  if (!ip) return '';
+  if (ip.startsWith('::ffff:')) {
+    return ip.slice(7);
+  }
+  if (ip === '::1') return '127.0.0.1';
+  return ip;
+}
+
 function broadcastClients() {
   const clients = Array.from(connectedClients.values()).map(c => ({
     id: c.id,
     ip: c.ip,
+    url: c.url,
+    hostname: c.hostname,
     connectedAt: c.connectedAt
   }));
   broadcast({ type: 'clients', clients });
@@ -231,13 +242,16 @@ wss.on('connection', ws => {
   console.log('New WebSocket connection established');
   const clientInfo = {
     id: Math.random().toString(36).slice(2),
-    ip: ws._socket.remoteAddress,
+    ip: normalizeIp(ws._socket.remoteAddress),
+    url: '',
+    hostname: '',
     connectedAt: Date.now()
   };
   connectedClients.set(ws, clientInfo);
   // Send current server state to new connections
   ws.send(JSON.stringify({ type: 'status', ...serverClockState }));
   broadcastClients();
+  ws.send(JSON.stringify({ type: 'request-hostname' }));
 
   ws.on('message', msg => {
     try {
@@ -253,7 +267,20 @@ wss.on('connection', ws => {
         if (typeof data.betweenRoundsTime === 'number') {
           serverClockState.betweenRoundsTime = data.betweenRoundsTime;
         }
+        if (data.url) {
+          const info = connectedClients.get(ws);
+          if (info) {
+            info.url = data.url;
+          }
+        }
+        broadcastClients();
         console.log('Settings synced from client');
+      } else if (data.type === 'client-hostname') {
+        const info = connectedClients.get(ws);
+        if (info) {
+          info.hostname = data.hostname || '';
+          broadcastClients();
+        }
       }
     } catch (err) {
       console.error('Invalid WS message', err);

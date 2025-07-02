@@ -43,6 +43,7 @@ const CountdownClock = () => {
   const [ntpOffset, setNtpOffset] = useState(0);
   const [ipAddress, setIpAddress] = useState('');
   const [ntpServer, setNtpServer] = useState('time.google.com');
+  const [ntpEnabled, setNtpEnabled] = useState(true);
   const [ntpDrift, setNtpDrift] = useState(0);
   const [lastNtpSync, setLastNtpSync] = useState('');
   const [connectedClients, setConnectedClients] = useState<any[]>([]);
@@ -70,13 +71,14 @@ const CountdownClock = () => {
   };
 
   useEffect(() => {
+    if (!ntpEnabled) return;
     handleSyncWithNTP();
     const ntpInterval = setInterval(
       handleSyncWithNTP,
       DEFAULT_NTP_SYNC_INTERVAL
     );
     return () => clearInterval(ntpInterval);
-  }, [ntpServer, handleSyncWithNTP]);
+  }, [ntpServer, ntpEnabled, handleSyncWithNTP]);
 
   // WebSocket for server communication
   useEffect(() => {
@@ -95,6 +97,7 @@ const CountdownClock = () => {
           // Sync current settings to server
           ws.send(JSON.stringify({
             type: 'sync-settings',
+            url: window.location.href,
             initialTime,
             totalRounds: inputRounds,
             betweenRoundsEnabled,
@@ -128,6 +131,13 @@ const CountdownClock = () => {
             } else if (data.type === 'clients') {
               setConnectedClients(data.clients || []);
               addDebugLog('WEBSOCKET', 'Connected clients updated', { count: data.clients?.length || 0 });
+            } else if (data.type === 'request-hostname') {
+              ws.send(
+                JSON.stringify({
+                  type: 'client-hostname',
+                  hostname: window.location.hostname
+                })
+              );
             } else {
               handleExternalCommand(data);
             }
@@ -460,19 +470,21 @@ const CountdownClock = () => {
             inputRounds={inputRounds}
             betweenRoundsEnabled={betweenRoundsEnabled}
             betweenRoundsTime={betweenRoundsTime}
-            ntpOffset={ntpOffset}
-            ntpServer={ntpServer}
-            lastNtpSync={lastNtpSync}
-            ntpDrift={ntpDrift}
-            setInputMinutes={setInputMinutes}
-            setInputSeconds={setInputSeconds}
-            setInputRounds={setInputRounds}
-            setBetweenRoundsEnabled={setBetweenRoundsEnabled}
-            setBetweenRoundsTime={setBetweenRoundsTime}
-            setNtpServer={setNtpServer}
-            onApplySettings={applySettings}
-            onSyncWithNTP={handleSyncWithNTP}
-          />
+          ntpOffset={ntpOffset}
+          ntpServer={ntpServer}
+          lastNtpSync={lastNtpSync}
+          ntpDrift={ntpDrift}
+          ntpEnabled={ntpEnabled}
+          setInputMinutes={setInputMinutes}
+          setInputSeconds={setInputSeconds}
+          setInputRounds={setInputRounds}
+          setBetweenRoundsEnabled={setBetweenRoundsEnabled}
+          setBetweenRoundsTime={setBetweenRoundsTime}
+          setNtpServer={setNtpServer}
+          setNtpEnabled={setNtpEnabled}
+          onApplySettings={applySettings}
+          onSyncWithNTP={handleSyncWithNTP}
+        />
         </TabsContent>
 
         <TabsContent value="info">

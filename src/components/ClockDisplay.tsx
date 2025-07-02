@@ -169,7 +169,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
 
           <Button
             onClick={onNextRound}
-            disabled={clockState.currentRound >= clockState.totalRounds || clockState.isBetweenRounds}
+            disabled={clockState.currentRound >= clockState.totalRounds}
             className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl"
           >
             <SkipForward className="w-5 sm:w-7 md:w-9 lg:w-10 h-5 sm:h-7 md:h-9 lg:h-10" />

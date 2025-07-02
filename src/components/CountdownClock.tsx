@@ -249,8 +249,19 @@ const CountdownClock = () => {
     resetRounds();
   };
 
-  const nextRound = () => {
+  const nextRound = async () => {
     if (clockState.currentRound < clockState.totalRounds) {
+      try {
+        const response = await fetch('/api/next-round', { method: 'POST' });
+        if (response.ok) {
+          addDebugLog('UI', 'Next round via API', {
+            round: clockState.currentRound + 1
+          });
+        }
+      } catch (error) {
+        addDebugLog('UI', 'Failed to advance round', { error: error.message });
+      }
+
       const newRound = clockState.currentRound + 1;
       setClockState(prev => ({
         ...prev,
@@ -263,7 +274,6 @@ const CountdownClock = () => {
         elapsedSeconds: 0,
         isBetweenRounds: false
       }));
-      addDebugLog('UI', 'Next round', { round: newRound });
     }
   };
 

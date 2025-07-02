@@ -34,26 +34,39 @@ const DebugTab: React.FC<DebugTabProps> = ({
     const filename = `countdown-clock-log-${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(csvData, filename);
   };
-
-  return (
-    <div className="space-y-6 p-4 min-h-screen bg-gray-900">
-      <Card className="bg-gray-800 border-gray-600">
-        <CardHeader>
-          <CardTitle className="text-3xl text-white mb-4">Connected Clients ({connectedClients.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {connectedClients.map((client, index) => (
-              <div key={index} className="bg-gray-700 p-4 rounded-xl border border-gray-600">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-white font-semibold">Client {index + 1}</span>
+return (
+  <div className="space-y-6 p-4 min-h-screen bg-gray-900">
+    <Card className="bg-gray-800 border-gray-600">
+      <CardHeader>
+        <CardTitle className="text-3xl text-white mb-4">
+          Connected Clients ({connectedClients.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {connectedClients.map((client, index) => (
+            <div key={index} className="bg-gray-700 p-4 rounded-xl border border-gray-600">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-white font-semibold">Client {index + 1}</span>
+              </div>
+              <div className="text-gray-300 text-sm space-y-1">
+                <div>ID: {client.id || 'Unknown'}</div>
+                <div>
+                  Connected:{' '}
+                  {client.connectedAt ? new Date(client.connectedAt).toLocaleTimeString() : 'Unknown'}
                 </div>
-                <div className="text-gray-300 text-sm space-y-1">
-                  <div>ID: {client.id || 'Unknown'}</div>
-                  <div>Connected: {client.connectedAt ? new Date(client.connectedAt).toLocaleTimeString() : 'Unknown'}</div>
-                  <div>IP: {client.ip || 'Unknown'}</div>
-                  <div>Hostname: {client.hostname || 'Unknown'}</div>
+                <div>IP: {client.ip || 'Unknown'}</div>
+                <div>Hostname: {client.hostname || 'Unknown'}</div> {/* resolved line */}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+);
+
                   <div>URL: {client.url || 'Unknown'}</div>
                 </div>
               </div>

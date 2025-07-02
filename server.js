@@ -4,6 +4,7 @@ import path from 'path';
 import http from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
 import dgram from 'dgram';
+import https from 'https';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
@@ -70,6 +71,28 @@ function queryNtpTime(server) {
         reject(err);
       }
     });
+  });
+}
+
+function queryWorldTime() {
+  const url = 'https://worldtimeapi.org/api/ip';
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, res => {
+        let data = '';
+        res.on('data', chunk => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            resolve(new Date(json.utc_datetime).getTime());
+          } catch (err) {
+            reject(err);
+          }
+        });
+      })
+      .on('error', reject);
   });
 }
 
@@ -415,15 +438,21 @@ app.get('/api/ntp-sync', async (req, res) => {
   const ntpServer = req.query.server || 'time.google.com';
   try {
     const before = Date.now();
-    const serverTime = await queryNtpTime(ntpServer);
+    let serverTime;
+    try {
+      serverTime = await queryNtpTime(ntpServer);
+    } catch (err) {
+      console.error('NTP sync failed:', err);
+      serverTime = await queryWorldTime();
+    }
     const after = Date.now();
     const networkDelay = (after - before) / 2;
     const clientTime = before + networkDelay;
     const offset = serverTime - clientTime;
     res.json({ offset, lastSync: new Date().toISOString() });
   } catch (err) {
-    console.error('NTP sync failed:', err);
-    res.status(500).json({ error: 'NTP sync failed' });
+    console.error('Time sync failed:', err);
+    res.status(500).json({ error: 'Time sync failed' });
   }
 });
 

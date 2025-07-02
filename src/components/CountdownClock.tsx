@@ -11,6 +11,8 @@ import SettingsTab from './SettingsTab';
 import ApiInfoTab from './ApiInfoTab';
 import DebugTab from './DebugTab';
 
+const DEFAULT_NTP_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
 const CountdownClock = () => {
   const [clockState, setClockState] = useState<ClockState>({
     minutes: 5,
@@ -69,7 +71,10 @@ const CountdownClock = () => {
 
   useEffect(() => {
     handleSyncWithNTP();
-    const ntpInterval = setInterval(handleSyncWithNTP, 1800000); // 30 minutes
+    const ntpInterval = setInterval(
+      handleSyncWithNTP,
+      DEFAULT_NTP_SYNC_INTERVAL
+    );
     return () => clearInterval(ntpInterval);
   }, [ntpServer, handleSyncWithNTP]);
 

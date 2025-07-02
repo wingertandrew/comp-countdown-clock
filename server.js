@@ -40,6 +40,18 @@ let serverClockState = {
 
 let serverTimer = null;
 
+// Track connected WebSocket clients
+const connectedClients = new Map();
+
+function broadcastClients() {
+  const clients = Array.from(connectedClients.values()).map(c => ({
+    id: c.id,
+    ip: c.ip,
+    connectedAt: c.connectedAt
+  }));
+  broadcast({ type: 'clients', clients });
+}
+
 function queryNtpTime(server) {
   return new Promise((resolve, reject) => {
     const client = dgram.createSocket('udp4');
@@ -217,8 +229,15 @@ function updateServerClock() {
 
 wss.on('connection', ws => {
   console.log('New WebSocket connection established');
+  const clientInfo = {
+    id: Math.random().toString(36).slice(2),
+    ip: ws._socket.remoteAddress,
+    connectedAt: Date.now()
+  };
+  connectedClients.set(ws, clientInfo);
   // Send current server state to new connections
   ws.send(JSON.stringify({ type: 'status', ...serverClockState }));
+  broadcastClients();
 
   ws.on('message', msg => {
     try {
@@ -243,6 +262,8 @@ wss.on('connection', ws => {
 
   ws.on('close', () => {
     console.log('WebSocket connection closed');
+    connectedClients.delete(ws);
+    broadcastClients();
   });
 });
 
@@ -604,4 +625,5 @@ server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
   console.log(`API Documentation: http://localhost:${PORT}/api/docs`);
   console.log('Server-side clock initialized and running');
+  broadcastClients();
 });

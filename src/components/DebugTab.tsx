@@ -12,6 +12,7 @@ interface DebugTabProps {
   setDebugFilter: (filter: DebugFilter) => void;
   onClearDebugLog: () => void;
   filteredDebugLog: DebugLogEntry[];
+  connectedClients: any[];
 }
 
 const DebugTab: React.FC<DebugTabProps> = ({
@@ -19,7 +20,8 @@ const DebugTab: React.FC<DebugTabProps> = ({
   debugFilter,
   setDebugFilter,
   onClearDebugLog,
-  filteredDebugLog
+  filteredDebugLog,
+  connectedClients
 }) => {
   const handleDownloadCSV = () => {
     const csvData = debugLog.map(entry => ({
@@ -35,6 +37,34 @@ const DebugTab: React.FC<DebugTabProps> = ({
 
   return (
     <div className="space-y-6 p-4 min-h-screen bg-gray-900">
+      <Card className="bg-gray-800 border-gray-600">
+        <CardHeader>
+          <CardTitle className="text-3xl text-white mb-4">Connected Clients ({connectedClients.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {connectedClients.map((client, index) => (
+              <div key={index} className="bg-gray-700 p-4 rounded-xl border border-gray-600">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-white font-semibold">Client {index + 1}</span>
+                </div>
+                <div className="text-gray-300 text-sm space-y-1">
+                  <div>ID: {client.id || 'Unknown'}</div>
+                  <div>Connected: {client.connectedAt ? new Date(client.connectedAt).toLocaleTimeString() : 'Unknown'}</div>
+                  <div>IP: {client.ip || 'Unknown'}</div>
+                </div>
+              </div>
+            ))}
+            {connectedClients.length === 0 && (
+              <div className="col-span-full text-gray-400 text-center py-8 text-xl">
+                No clients connected
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="bg-gray-800 border-gray-600">
         <CardHeader>
           <CardTitle className="text-3xl text-white mb-4">Debug Log</CardTitle>

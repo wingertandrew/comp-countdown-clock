@@ -43,6 +43,7 @@ const CountdownClock = () => {
   const [ntpServer, setNtpServer] = useState('time.google.com');
   const [ntpDrift, setNtpDrift] = useState(0);
   const [lastNtpSync, setLastNtpSync] = useState('');
+  const [connectedClients, setConnectedClients] = useState<any[]>([]);
 
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
@@ -119,6 +120,9 @@ const CountdownClock = () => {
               if (data.initialTime) {
                 setInitialTime(data.initialTime);
               }
+            } else if (data.type === 'clients') {
+              setConnectedClients(data.clients || []);
+              addDebugLog('WEBSOCKET', 'Connected clients updated', { count: data.clients?.length || 0 });
             } else {
               handleExternalCommand(data);
             }
@@ -477,6 +481,7 @@ const CountdownClock = () => {
           <DebugTab
             {...debugLogProps}
             onClearDebugLog={debugLogProps.clearDebugLog}
+            connectedClients={connectedClients}
           />
         </TabsContent>
       </Tabs>

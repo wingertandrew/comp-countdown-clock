@@ -131,6 +131,13 @@ const CountdownClock = () => {
             } else if (data.type === 'clients') {
               setConnectedClients(data.clients || []);
               addDebugLog('WEBSOCKET', 'Connected clients updated', { count: data.clients?.length || 0 });
+            } else if (data.type === 'request-hostname') {
+              ws.send(
+                JSON.stringify({
+                  type: 'client-hostname',
+                  hostname: window.location.hostname
+                })
+              );
             } else {
               handleExternalCommand(data);
             }

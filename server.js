@@ -57,10 +57,12 @@ function broadcastClients() {
     id: c.id,
     ip: c.ip,
     url: c.url,
+    hostname: c.hostname, // kept from `37rtxh-codex/set-default-ntp-sync-to-30-minutes`
     connectedAt: c.connectedAt
   }));
   broadcast({ type: 'clients', clients });
 }
+
 
 function queryNtpTime(server) {
   return new Promise((resolve, reject) => {
@@ -243,12 +245,16 @@ wss.on('connection', ws => {
     id: Math.random().toString(36).slice(2),
     ip: normalizeIp(ws._socket.remoteAddress),
     url: '',
+    hostname: '', // kept this line from `37rtxh-codex/set-default-ntp-sync-to-30-minutes` branch
     connectedAt: Date.now()
   };
+});
+
   connectedClients.set(ws, clientInfo);
   // Send current server state to new connections
   ws.send(JSON.stringify({ type: 'status', ...serverClockState }));
   broadcastClients();
+  ws.send(JSON.stringify({ type: 'request-hostname' }));
 
   ws.on('message', msg => {
     try {
@@ -272,6 +278,12 @@ wss.on('connection', ws => {
         }
         broadcastClients();
         console.log('Settings synced from client');
+      } else if (data.type === 'client-hostname') {
+        const info = connectedClients.get(ws);
+        if (info) {
+          info.hostname = data.hostname || '';
+          broadcastClients();
+        }
       }
     } catch (err) {
       console.error('Invalid WS message', err);

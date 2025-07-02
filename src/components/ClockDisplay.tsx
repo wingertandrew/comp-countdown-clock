@@ -79,24 +79,26 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
 
         {/* Status Bar */}
         <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6" style={{ backgroundColor: statusColor }}>
-          <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 text-black text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
-            <div className="flex items-center gap-2 sm:gap-3">
-              {clockState.isRunning && !clockState.isPaused ? (
-                <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] md:border-l-[20px] border-l-black border-t-[8px] sm:border-t-[10px] md:border-t-[12px] border-t-transparent border-b-[8px] sm:border-b-[10px] md:border-b-[12px] border-b-transparent"></div>
-              ) : clockState.isPaused ? (
-                <div className="flex gap-1 sm:gap-2">
-                  <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
-                  <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
-                </div>
-              ) : (
-                <div className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8 bg-black"></div>
-              )}
-              <span>{getStatusText(clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds)}</span>
+          <div className="flex flex-col items-center gap-2 sm:gap-3 text-black">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
+              <div className="flex items-center gap-2 sm:gap-3">
+                {clockState.isRunning && !clockState.isPaused ? (
+                  <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] md:border-l-[20px] border-l-black border-t-[8px] sm:border-t-[10px] md:border-t-[12px] border-t-transparent border-b-[8px] sm:border-b-[10px] md:border-b-[12px] border-b-transparent"></div>
+                ) : clockState.isPaused ? (
+                  <div className="flex gap-1 sm:gap-2">
+                    <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
+                    <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
+                  </div>
+                ) : (
+                  <div className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8 bg-black"></div>
+                )}
+                <span>{getStatusText(clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds)}</span>
+              </div>
             </div>
             {clockState.isPaused && (
-              <span className="text-orange-600 text-sm sm:text-lg md:text-xl lg:text-2xl">
-                - {formatDuration(clockState.currentPauseDuration)}
-              </span>
+              <div className="bg-black/20 rounded-full px-3 py-1 text-sm sm:text-base md:text-lg font-mono">
+                {formatDuration(clockState.currentPauseDuration)}
+              </div>
             )}
           </div>
         </div>
@@ -180,21 +182,31 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           </HoldButton>
         </div>
 
-        {/* Round Info - Larger text */}
-        <div className="text-center text-white">
-          <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-2">
-            Round {clockState.currentRound} of {clockState.totalRounds}
+        {/* Round Info and Stats - Larger text */}
+        <div className="flex items-start justify-between text-white">
+          {/* Left side - Total Paused and Between Rounds info */}
+          <div className="flex flex-col gap-1">
+            {clockState.totalPausedTime > 0 && (
+              <div className="text-yellow-400 text-lg sm:text-xl md:text-2xl">
+                Total Paused: {formatDuration(clockState.totalPausedTime)}
+              </div>
+            )}
+            {betweenRoundsEnabled && (
+              <div className="text-purple-400 text-lg sm:text-xl md:text-2xl">
+                Between Rounds Timer: {betweenRoundsTime}s
+              </div>
+            )}
           </div>
-          {clockState.totalPausedTime > 0 && (
-            <div className="text-yellow-400 text-lg sm:text-xl md:text-2xl">
-              Total Paused: {formatDuration(clockState.totalPausedTime)}
+          
+          {/* Center - Round info */}
+          <div className="text-center flex-1">
+            <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-2">
+              ROUND {clockState.currentRound} of {clockState.totalRounds}
             </div>
-          )}
-          {betweenRoundsEnabled && (
-            <div className="text-purple-400 text-lg sm:text-xl md:text-2xl mt-1">
-              Between Rounds Timer: {betweenRoundsTime}s
-            </div>
-          )}
+          </div>
+          
+          {/* Right side - placeholder for balance */}
+          <div className="w-0"></div>
         </div>
       </div>
     </div>

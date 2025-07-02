@@ -12,6 +12,9 @@ interface ClockData {
   elapsedSeconds: number;
   totalPausedTime: number;
   currentPauseDuration: number;
+  isBetweenRounds: boolean;
+  betweenRoundsMinutes: number;
+  betweenRoundsSeconds: number;
 }
 
 const ClockPretty = () => {
@@ -25,7 +28,10 @@ const ClockPretty = () => {
     elapsedMinutes: 0,
     elapsedSeconds: 0,
     totalPausedTime: 0,
-    currentPauseDuration: 0
+    currentPauseDuration: 0,
+    isBetweenRounds: false,
+    betweenRoundsMinutes: 0,
+    betweenRoundsSeconds: 0
   });
 
   useEffect(() => {
@@ -79,12 +85,14 @@ const ClockPretty = () => {
 
   const getStatusColor = () => {
     if (clockData.isPaused) return 'text-yellow-400';
+    if (clockData.isBetweenRounds) return 'text-purple-400';
     if (clockData.isRunning) return 'text-green-400';
     return 'text-red-400';
   };
 
   const getStatusText = () => {
     if (clockData.isPaused) return 'PAUSED';
+    if (clockData.isBetweenRounds) return 'BETWEEN ROUNDS';
     if (clockData.isRunning) return 'RUNNING';
     return 'STOPPED';
   };
@@ -94,7 +102,10 @@ const ClockPretty = () => {
       {/* Main Timer Display */}
       <div className="text-center mb-8">
         <div className="text-[20rem] font-mono font-bold tracking-wider mb-8 text-white leading-none">
-          {formatTime(clockData.minutes, clockData.seconds)}
+          {clockData.isBetweenRounds 
+            ? formatTime(clockData.betweenRoundsMinutes, clockData.betweenRoundsSeconds)
+            : formatTime(clockData.minutes, clockData.seconds)
+          }
         </div>
         
         {/* Status Indicator */}

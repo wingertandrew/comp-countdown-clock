@@ -20,9 +20,16 @@ interface SettingsTabProps {
   setInputRounds: (value: number) => void;
   setBetweenRoundsEnabled: (enabled: boolean) => void;
   setBetweenRoundsTime: (time: number) => void;
+  setNtpServer: (server: string) => void;
   onApplySettings: () => void;
   onSyncWithNTP: () => void;
 }
+
+const isValidNtpUrl = (url: string): boolean => {
+  // Basic validation for NTP server URL
+  const ntpPattern = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^(\d{1,3}\.){3}\d{1,3}$/;
+  return ntpPattern.test(url.trim());
+};
 
 const SettingsTab: React.FC<SettingsTabProps> = ({
   inputMinutes,
@@ -39,6 +46,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   setInputRounds,
   setBetweenRoundsEnabled,
   setBetweenRoundsTime,
+  setNtpServer,
   onApplySettings,
   onSyncWithNTP
 }) => {
@@ -52,7 +60,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Minutes</label>
-              <Input type="number" min="0" max="59" value={inputMinutes} onChange={e => setInputMinutes(parseInt(e.target.value) || 0)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
+              <Input type="number" min="0" max="59" value={inputMinutes} onChange={e => setInputMinutes(Math.max(0, parseInt(e.target.value) || 0))} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
               <div className="flex gap-6 mt-6">
                 <Button onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
                   <Minus className="w-12 h-12" />
@@ -65,7 +73,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Seconds</label>
-              <Input type="number" min="0" max="59" value={inputSeconds} onChange={e => setInputSeconds(parseInt(e.target.value) || 0)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
+              <Input type="number" min="0" max="59" value={inputSeconds} onChange={e => setInputSeconds(Math.max(0, parseInt(e.target.value) || 0))} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
               <div className="flex gap-6 mt-6">
                 <Button onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
                   <Minus className="w-12 h-12" />
@@ -165,8 +173,18 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     </span>
                   </div>
                   
-                  <div className="text-lg text-gray-300">
-                    <strong className="text-white">Server:</strong> {ntpServer}
+                  <div className="space-y-2">
+                    <label className="block text-lg text-white font-medium">NTP Server URL:</label>
+                    <Input
+                      type="text"
+                      value={ntpServer}
+                      onChange={(e) => setNtpServer(e.target.value)}
+                      placeholder="time.google.com"
+                      className="h-12 bg-gray-700 border-gray-500 text-white text-lg"
+                    />
+                    {ntpServer && !isValidNtpUrl(ntpServer) && (
+                      <p className="text-red-400 text-sm">Invalid NTP server format</p>
+                    )}
                   </div>
                   
                   <div className="text-lg text-gray-300">

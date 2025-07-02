@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, SkipForward, SkipBack, Plus, Minus, RotateCcw, History } from 'lucide-react';
 import HoldButton from './HoldButton';
+import FastAdjustButton from './FastAdjustButton';
 import { ClockState } from '@/types/clock';
 import { formatTime, formatDuration, getStatusColor, getStatusText } from '@/utils/clockUtils';
 
@@ -80,26 +81,28 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
         {/* Status Bar */}
         <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6" style={{ backgroundColor: statusColor }}>
           <div className="flex flex-col items-center gap-2 sm:gap-3 text-black">
-            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
-              <div className="flex items-center gap-2 sm:gap-3">
-                {clockState.isRunning && !clockState.isPaused ? (
-                  <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] md:border-l-[20px] border-l-black border-t-[8px] sm:border-t-[10px] md:border-t-[12px] border-t-transparent border-b-[8px] sm:border-b-[10px] md:border-b-[12px] border-b-transparent"></div>
-                ) : clockState.isPaused ? (
-                  <div className="flex gap-1 sm:gap-2">
-                    <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
-                    <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
-                  </div>
-                ) : (
-                  <div className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8 bg-black"></div>
-                )}
-                <span>{getStatusText(clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds)}</span>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {clockState.isRunning && !clockState.isPaused ? (
+                    <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] md:border-l-[20px] border-l-black border-t-[8px] sm:border-t-[10px] md:border-t-[12px] border-t-transparent border-b-[8px] sm:border-b-[10px] md:border-b-[12px] border-b-transparent"></div>
+                  ) : clockState.isPaused ? (
+                    <div className="flex gap-1 sm:gap-2">
+                      <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
+                      <div className="w-2 sm:w-3 h-4 sm:h-6 md:h-8 bg-black"></div>
+                    </div>
+                  ) : (
+                    <div className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8 bg-black"></div>
+                  )}
+                  <span>{getStatusText(clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds)}</span>
+                </div>
               </div>
+              {clockState.isPaused && (
+                <div className="bg-black/20 rounded-full px-3 py-1 text-sm sm:text-base md:text-lg font-mono">
+                  {formatDuration(clockState.currentPauseDuration)}
+                </div>
+              )}
             </div>
-            {clockState.isPaused && (
-              <div className="bg-black/20 rounded-full px-3 py-1 text-sm sm:text-base md:text-lg font-mono">
-                {formatDuration(clockState.currentPauseDuration)}
-              </div>
-            )}
           </div>
         </div>
 
@@ -122,20 +125,22 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
         <div className="grid grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
           {/* Time Adjustment Group - Disabled during between rounds */}
           <div className="col-span-2 flex gap-1 sm:gap-2">
-            <Button
-              onClick={() => onAdjustTimeBySeconds(-1)}
+            <FastAdjustButton
+              onAdjust={(amount) => onAdjustTimeBySeconds(amount)}
+              adjustAmount={-1}
               disabled={(clockState.isRunning && !clockState.isPaused) || clockState.isBetweenRounds}
               className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-2xl md:text-3xl font-bold flex-1"
             >
               <Minus className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
-            </Button>
-            <Button
-              onClick={() => onAdjustTimeBySeconds(1)}
+            </FastAdjustButton>
+            <FastAdjustButton
+              onAdjust={(amount) => onAdjustTimeBySeconds(amount)}
+              adjustAmount={1}
               disabled={(clockState.isRunning && !clockState.isPaused) || clockState.isBetweenRounds}
               className="h-12 sm:h-16 md:h-20 lg:h-24 bg-gray-400 hover:bg-gray-300 text-black rounded-xl sm:rounded-2xl text-lg sm:text-2xl md:text-3xl font-bold flex-1"
             >
               <Plus className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
-            </Button>
+            </FastAdjustButton>
           </div>
 
           {/* Round Controls - Disabled during between rounds */}

@@ -70,7 +70,7 @@ const CountdownClock = () => {
     handleSyncWithNTP();
     const ntpInterval = setInterval(handleSyncWithNTP, 1800000); // 30 minutes
     return () => clearInterval(ntpInterval);
-  }, [ntpServer]);
+  }, [ntpServer, handleSyncWithNTP]);
 
   // WebSocket for server communication
   useEffect(() => {
@@ -249,44 +249,80 @@ const CountdownClock = () => {
     resetRounds();
   };
 
-  const nextRound = async () => {
-    try {
-      const response = await fetch('/api/next-round', { method: 'POST' });
-      if (response.ok) {
-        addDebugLog('UI', 'Next round via API');
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to go to next round', { error: error.message });
+  const nextRound = () => {
+    if (clockState.currentRound < clockState.totalRounds) {
+      const newRound = clockState.currentRound + 1;
+      setClockState(prev => ({
+        ...prev,
+        currentRound: newRound,
+        minutes: initialTime.minutes,
+        seconds: initialTime.seconds,
+        isRunning: false,
+        isPaused: false,
+        elapsedMinutes: 0,
+        elapsedSeconds: 0,
+        isBetweenRounds: false
+      }));
+      addDebugLog('UI', 'Next round', { round: newRound });
     }
   };
 
-  const previousRound = async () => {
-    try {
-      const response = await fetch('/api/previous-round', { method: 'POST' });
-      if (response.ok) {
-        addDebugLog('UI', 'Previous round via API');
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to go to previous round', { error: error.message });
+  const previousRound = () => {
+    if (clockState.currentRound > 1) {
+      const newRound = clockState.currentRound - 1;
+      setClockState(prev => ({
+        ...prev,
+        currentRound: newRound,
+        minutes: initialTime.minutes,
+        seconds: initialTime.seconds,
+        isRunning: false,
+        isPaused: false,
+        elapsedMinutes: 0,
+        elapsedSeconds: 0,
+        isBetweenRounds: false
+      }));
+      addDebugLog('UI', 'Previous round', { round: newRound });
     }
   };
 
-  const adjustTimeBySeconds = async (secondsToAdd: number) => {
-    try {
-      const response = await fetch('/api/adjust-time', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seconds: secondsToAdd })
-      });
+  const adjustTimeBySeconds = (secondsToAdd: number) => {
+    if (clockState.isRunning && !clockState.isPaused) return; // Don't adjust while running
+    if (clockState.isBetweenRounds) return; // Don't adjust during between rounds
+    
+    setClockState(prev => {
+      let newMinutes = prev.minutes;
+      let newSeconds = prev.seconds + secondsToAdd;
       
-      if (response.ok) {
-        addDebugLog('UI', 'Time adjusted by seconds via API', { 
-          adjustment: secondsToAdd
-        });
+      // Handle seconds overflow/underflow
+      while (newSeconds >= 60) {
+        newSeconds -= 60;
+        newMinutes += 1;
       }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to adjust time', { error: error.message });
-    }
+      while (newSeconds < 0 && (newMinutes > 0 || newSeconds > -60)) {
+        newSeconds += 60;
+        newMinutes -= 1;
+      }
+      
+      // Ensure we don't go below 0:00
+      if (newMinutes < 0) {
+        newMinutes = 0;
+        newSeconds = 0;
+      }
+      
+      // Cap at 59:59
+      if (newMinutes > 59) {
+        newMinutes = 59;
+        newSeconds = 59;
+      }
+      
+      return {
+        ...prev,
+        minutes: newMinutes,
+        seconds: newSeconds
+      };
+    });
+    
+    addDebugLog('UI', 'Time adjusted by seconds', { adjustment: secondsToAdd });
   };
 
   const setTime = async (minutes: number, seconds: number) => {
@@ -414,6 +450,7 @@ const CountdownClock = () => {
             setInputRounds={setInputRounds}
             setBetweenRoundsEnabled={setBetweenRoundsEnabled}
             setBetweenRoundsTime={setBetweenRoundsTime}
+            setNtpServer={setNtpServer}
             onApplySettings={applySettings}
             onSyncWithNTP={handleSyncWithNTP}
           />

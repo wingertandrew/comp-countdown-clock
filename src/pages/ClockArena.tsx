@@ -8,6 +8,9 @@ interface ClockData {
   totalRounds: number;
   isRunning: boolean;
   isPaused: boolean;
+  isBetweenRounds: boolean;
+  betweenRoundsMinutes: number;
+  betweenRoundsSeconds: number;
 }
 
 const ClockArena = () => {
@@ -17,7 +20,10 @@ const ClockArena = () => {
     currentRound: 1,
     totalRounds: 3,
     isRunning: false,
-    isPaused: false
+    isPaused: false,
+    isBetweenRounds: false,
+    betweenRoundsMinutes: 0,
+    betweenRoundsSeconds: 0
   });
 
   useEffect(() => {
@@ -65,8 +71,9 @@ const ClockArena = () => {
 
   const getTimerColor = () => {
     if (clockData.isPaused) return 'text-yellow-400';
+    if (clockData.isBetweenRounds) return 'text-purple-400';
     if (clockData.isRunning) return 'text-green-400';
-    if (clockData.minutes === 0 && clockData.seconds <= 10) return 'text-red-400 animate-pulse';
+    if (!clockData.isBetweenRounds && clockData.minutes === 0 && clockData.seconds <= 10) return 'text-red-400 animate-pulse';
     return 'text-white';
   };
 
@@ -79,7 +86,10 @@ const ClockArena = () => {
       {/* Top Left Corner - Main Timer */}
       <div className="absolute top-8 left-8">
         <div className={`text-8xl font-mono font-bold tracking-wider mb-2 ${getTimerColor()}`}>
-          {formatTime(clockData.minutes, clockData.seconds)}
+          {clockData.isBetweenRounds 
+            ? formatTime(clockData.betweenRoundsMinutes, clockData.betweenRoundsSeconds)
+            : formatTime(clockData.minutes, clockData.seconds)
+          }
         </div>
         
         {/* Round Indicator */}
@@ -94,13 +104,19 @@ const ClockArena = () => {
           </div>
         )}
         
-        {!clockData.isRunning && !clockData.isPaused && (
+        {clockData.isBetweenRounds && (
+          <div className="text-xl text-purple-400 animate-pulse mt-1">
+            🔄 BETWEEN ROUNDS
+          </div>
+        )}
+        
+        {!clockData.isRunning && !clockData.isPaused && !clockData.isBetweenRounds && (
           <div className="text-xl text-red-400 mt-1">
             ⏹️ STOPPED
           </div>
         )}
         
-        {clockData.isRunning && !clockData.isPaused && (
+        {clockData.isRunning && !clockData.isPaused && !clockData.isBetweenRounds && (
           <div className="text-xl text-green-400 mt-1">
             ▶️ RUNNING
           </div>

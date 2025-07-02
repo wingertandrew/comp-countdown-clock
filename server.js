@@ -248,7 +248,6 @@ wss.on('connection', ws => {
     hostname: '', // kept this line from `37rtxh-codex/set-default-ntp-sync-to-30-minutes` branch
     connectedAt: Date.now()
   };
-});
 
   connectedClients.set(ws, clientInfo);
   // Send current server state to new connections

@@ -101,3 +101,17 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+/* Pulse animation for urgent timer state */
+@keyframes urgent-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.urgent-pulse {
+  animation: urgent-pulse 1s ease-in-out infinite;
+}

@@ -79,7 +79,18 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
         </div>
 
         {/* Status Bar */}
-        <div className="rounded-lg sm:rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6" style={{ backgroundColor: statusColor }}>
+        <div 
+          className={`rounded-lg sm:rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 ${
+            clockState.isRunning && 
+            !clockState.isPaused && 
+            !clockState.isBetweenRounds && 
+            clockState.minutes === 0 && 
+            clockState.seconds <= 10 
+              ? 'urgent-pulse' 
+              : ''
+          }`} 
+          style={{ backgroundColor: statusColor }}
+        >
           <div className="flex flex-col items-center gap-2 sm:gap-3 text-black">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">

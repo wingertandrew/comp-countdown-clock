@@ -72,4 +72,23 @@ describe('NTPSyncManager', () => {
     const result = await manager.syncWithNTP('test');
     expect(Math.round(result.offset)).toBe(300);
   });
+
+  test('retries NTP sync according to maxRetries', async () => {
+    const manager = new NTPSyncManager({
+      servers: ['a'],
+      syncInterval: 0,
+      driftThreshold: 0,
+      maxRetries: 2
+    });
+
+    const mockResult = { offset: 10, delay: 0, timestamp: 0 } as any;
+    const syncSpy = jest
+      .spyOn(manager, 'syncWithNTP')
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockResolvedValueOnce(mockResult);
+
+    await manager.performSync();
+
+    expect(syncSpy).toHaveBeenCalledTimes(2);
+  });
 });

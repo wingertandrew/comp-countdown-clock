@@ -134,29 +134,33 @@ export class NTPSyncManager {
   }
 
   async performSync(): Promise<void> {
-    for (const server of this.config.servers) {
-      try {
-        const result = await this.syncWithNTP(server);
-        
-        // Apply smooth correction if drift exceeds threshold
-        if (Math.abs(result.offset) > this.config.driftThreshold) {
-          this.timeOffset = result.offset;
-          this.onSyncUpdate?.({
-            offset: result.offset,
-            timestamp: result.timestamp,
-            server
-          });
+    const retries = Math.max(1, this.config.maxRetries);
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+      for (const server of this.config.servers) {
+        try {
+          const result = await this.syncWithNTP(server);
+
+          // Apply smooth correction if drift exceeds threshold
+          if (Math.abs(result.offset) > this.config.driftThreshold) {
+            this.timeOffset = result.offset;
+            this.onSyncUpdate?.({
+              offset: result.offset,
+              timestamp: result.timestamp,
+              server
+            });
+          }
+
+          this.lastSyncTime = Date.now();
+          return; // Success, exit
+        } catch (error) {
+          console.warn(`NTP sync failed for ${server}:`, error);
+          continue; // Try next server
         }
-        
-        this.lastSyncTime = Date.now();
-        return; // Success, exit loop
-      } catch (error) {
-        console.warn(`NTP sync failed for ${server}:`, error);
-        continue; // Try next server
       }
     }
-    
-    // All servers failed
+
+    // All attempts failed
     this.onSyncError?.('All NTP servers failed to respond');
   }
 

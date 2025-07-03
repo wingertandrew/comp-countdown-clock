@@ -6,7 +6,7 @@ export const useDebugLog = () => {
   const [debugLog, setDebugLog] = useState<DebugLogEntry[]>([]);
   const [debugFilter, setDebugFilter] = useState<DebugFilter>('ALL');
 
-  const addDebugLog = (source: 'UI' | 'API' | 'WEBSOCKET', action: string, details?: any) => {
+  const addDebugLog = (source: 'UI' | 'API' | 'WEBSOCKET' | 'NTP', action: string, details?: any) => {
     const entry: DebugLogEntry = {
       timestamp: new Date().toISOString(),
       source,

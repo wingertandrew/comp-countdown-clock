@@ -31,7 +31,8 @@ const CountdownClock = () => {
     betweenRoundsTime: 60,
     ntpSyncEnabled: false,
     ntpSyncInterval: 30000,
-    ntpDriftThreshold: 50
+    ntpDriftThreshold: 50,
+    ntpOffset: 0
   });
 
   const [initialTime, setInitialTime] = useState({ minutes: 5, seconds: 0 });
@@ -110,8 +111,8 @@ const CountdownClock = () => {
                 addDebugLog('NTP', 'Timestamp received via WebSocket', {
                   ntpTimestamp: data.ntpTimestamp,
                   serverTime: data.serverTime,
-                  localTime: Date.now(),
-                  timeDiff: data.ntpTimestamp - Date.now()
+                  localTime: Date.now() + clockState.ntpOffset,
+                  timeDiff: data.ntpTimestamp - (Date.now() + clockState.ntpOffset)
                 });
               }
 

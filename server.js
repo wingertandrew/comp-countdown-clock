@@ -36,7 +36,8 @@ let serverClockState = {
   betweenRoundsTime: 60,
   lastUpdateTime: Date.now(),
   ntpTimestamp: null,
-  ntpSyncEnabled: false
+  ntpSyncEnabled: false,
+  ntpOffset: 0
 };
 
 let serverTimer = null;
@@ -124,8 +125,11 @@ function queryWorldTime() {
 function broadcast(data) {
   const message = JSON.stringify({
     ...data,
-    ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null,
-    serverTime: Date.now()
+    ntpTimestamp: serverClockState.ntpSyncEnabled
+      ? Date.now() + serverClockState.ntpOffset
+      : null,
+    serverTime: Date.now() + serverClockState.ntpOffset,
+    ntpOffset: serverClockState.ntpOffset
   });
   console.log('Broadcasting to', wss.clients.size, 'clients:', data.type || data.action);
   wss.clients.forEach(client => {
@@ -144,28 +148,36 @@ function startServerTimer() {
   serverTimer = setInterval(() => {
     if (serverClockState.isRunning && !serverClockState.isPaused) {
       updateServerClock();
-      broadcast({ 
-        type: 'status', 
-        ...serverClockState,
-        ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null
+      broadcast({
+        type: 'status',
+        ...serverClockState
       });
     }
     
     // Update pause duration if paused
     if (serverClockState.isPaused && serverClockState.pauseStartTime) {
-      const pauseDuration = Math.floor((Date.now() - serverClockState.pauseStartTime) / 1000);
+      const pauseDuration = Math.floor(
+        (Date.now() + serverClockState.ntpOffset - serverClockState.pauseStartTime) /
+          1000
+      );
       serverClockState.currentPauseDuration = pauseDuration;
-      broadcast({ 
-        type: 'status', 
-        ...serverClockState,
-        ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null
+      broadcast({
+        type: 'status',
+        ...serverClockState
       });
     }
   }, 1000);
 }
 
 function updateServerClock() {
-  if (serverClockState.isBetweenRounds) {
+  const now = Date.now() + serverClockState.ntpOffset;
+  const elapsed = now - serverClockState.lastUpdateTime;
+  if (elapsed < 1000) return;
+  const ticks = Math.floor(elapsed / 1000);
+  serverClockState.lastUpdateTime += ticks * 1000;
+
+  for (let i = 0; i < ticks; i++) {
+    if (serverClockState.isBetweenRounds) {
     // Count up during between rounds
     const newSeconds = serverClockState.betweenRoundsSeconds + 1;
     const newMinutes = newSeconds >= 60 ? serverClockState.betweenRoundsMinutes + 1 : serverClockState.betweenRoundsMinutes;
@@ -259,16 +271,17 @@ wss.on('connection', ws => {
     ip: normalizeIp(ws._socket.remoteAddress),
     url: '',
     hostname: '',
-    connectedAt: Date.now()
+    connectedAt: Date.now() + serverClockState.ntpOffset
   };
 
   connectedClients.set(ws, clientInfo);
   // Send current server state to new connections
-  ws.send(JSON.stringify({ 
-    type: 'status', 
-    ...serverClockState,
-    ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null
-  }));
+  ws.send(
+    JSON.stringify({
+      type: 'status',
+      ...serverClockState
+    })
+  );
   broadcastClients();
   ws.send(JSON.stringify({ type: 'request-hostname' }));
 
@@ -322,7 +335,10 @@ startServerTimer();
 app.post('/api/start', (_req, res) => {
   console.log('API: Start timer');
   if (serverClockState.isPaused && serverClockState.pauseStartTime) {
-    serverClockState.totalPausedTime += Math.floor((Date.now() - serverClockState.pauseStartTime) / 1000);
+    serverClockState.totalPausedTime += Math.floor(
+      (Date.now() + serverClockState.ntpOffset - serverClockState.pauseStartTime) /
+        1000
+    );
   }
   serverClockState.isRunning = true;
   serverClockState.isPaused = false;
@@ -337,7 +353,10 @@ app.post('/api/pause', (_req, res) => {
   if (serverClockState.isPaused) {
     // Resume
     if (serverClockState.pauseStartTime) {
-      serverClockState.totalPausedTime += Math.floor((Date.now() - serverClockState.pauseStartTime) / 1000);
+      serverClockState.totalPausedTime += Math.floor(
+        (Date.now() + serverClockState.ntpOffset - serverClockState.pauseStartTime) /
+          1000
+      );
     }
     serverClockState.isPaused = false;
     serverClockState.pauseStartTime = null;
@@ -345,7 +364,7 @@ app.post('/api/pause', (_req, res) => {
   } else {
     // Pause
     serverClockState.isPaused = true;
-    serverClockState.pauseStartTime = Date.now();
+    serverClockState.pauseStartTime = Date.now() + serverClockState.ntpOffset;
   }
   broadcast({ action: 'pause' });
   res.json({ success: true });
@@ -534,6 +553,8 @@ app.get('/api/ntp-sync', async (req, res) => {
     const networkDelay = (after - before) / 2;
     const clientTime = before + networkDelay;
     const offset = serverTime - clientTime;
+    serverClockState.ntpOffset = offset;
+    serverClockState.lastUpdateTime = Date.now() + offset;
     res.json({ offset, lastSync: new Date().toISOString() });
   } catch (err) {
     console.error('Time sync failed:', err);
@@ -559,7 +580,8 @@ app.get('/api/status', (req, res) => {
 
   res.json({
     ...serverClockState,
-    serverTime: Date.now(),
+    serverTime: Date.now() + serverClockState.ntpOffset,
+    ntpOffset: serverClockState.ntpOffset,
     api_version: "1.0.0",
     connection_protocol: "http_rest_websocket"
   });

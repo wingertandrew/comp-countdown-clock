@@ -4,13 +4,13 @@ import { Settings, Info, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ClockState } from '@/types/clock';
 import { useDebugLog } from '@/hooks/useDebugLog';
-import { syncWithNTP, getNTPTime } from '@/utils/ntpUtils';
+
 import ClockDisplay from './ClockDisplay';
 import SettingsTab from './SettingsTab';
 import ApiInfoTab from './ApiInfoTab';
 import DebugTab from './DebugTab';
 
-const DEFAULT_NTP_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
 
 const CountdownClock = () => {
   const [clockState, setClockState] = useState<ClockState>({
@@ -39,13 +39,7 @@ const CountdownClock = () => {
   const [betweenRoundsEnabled, setBetweenRoundsEnabled] = useState(true);
   const [betweenRoundsTime, setBetweenRoundsTime] = useState(60);
   const [activeTab, setActiveTab] = useState('clock');
-  const [ntpOffset, setNtpOffset] = useState(0);
   const [ipAddress, setIpAddress] = useState('');
-  const [ntpServer, setNtpServer] = useState('time.google.com');
-  const [ntpFallbackServer, setNtpFallbackServer] = useState('pool.ntp.org');
-  const [ntpEnabled, setNtpEnabled] = useState(true);
-  const [ntpDrift, setNtpDrift] = useState(0);
-  const [lastNtpSync, setLastNtpSync] = useState('');
   const [connectedClients, setConnectedClients] = useState<any[]>([]);
 
   const { toast } = useToast();
@@ -58,39 +52,6 @@ const CountdownClock = () => {
     setIpAddress(window.location.hostname || 'localhost');
   }, []);
 
-  const handleSyncWithNTP = async () => {
-    try {
-      const { offset, lastSync } = await syncWithNTP(ntpServer);
-      setNtpOffset(offset);
-      setLastNtpSync(lastSync);
-      addDebugLog('API', 'NTP sync completed', { offset, server: ntpServer });
-    } catch (error) {
-      // Try fallback server
-      try {
-        const { offset, lastSync } = await syncWithNTP(ntpFallbackServer);
-        setNtpOffset(offset);
-        setLastNtpSync(lastSync);
-        addDebugLog('API', 'NTP sync completed with fallback', { offset, server: ntpFallbackServer });
-      } catch (fallbackError) {
-        addDebugLog('API', 'NTP sync failed on both servers', { 
-          primaryError: error.message, 
-          fallbackError: fallbackError.message,
-          fallback: 'local time' 
-        });
-        setNtpOffset(0);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (!ntpEnabled) return;
-    handleSyncWithNTP();
-    const ntpInterval = setInterval(
-      handleSyncWithNTP,
-      DEFAULT_NTP_SYNC_INTERVAL
-    );
-    return () => clearInterval(ntpInterval);
-  }, [ntpServer, ntpFallbackServer, ntpEnabled, handleSyncWithNTP]);
 
   // WebSocket for server communication
   useEffect(() => {
@@ -326,45 +287,24 @@ const CountdownClock = () => {
     }
   };
 
-  const adjustTimeBySeconds = (secondsToAdd: number) => {
+  const adjustTimeBySeconds = async (secondsToAdd: number) => {
     // Only allow adjustment when clock is not running or is paused
     if (clockState.isRunning && !clockState.isPaused) return;
     if (clockState.isBetweenRounds) return; // Don't adjust during between rounds
     
-    setClockState(prev => {
-      let newMinutes = prev.minutes;
-      let newSeconds = prev.seconds + secondsToAdd;
+    try {
+      const response = await fetch('/api/adjust-time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seconds: secondsToAdd })
+      });
       
-      // Handle seconds overflow/underflow
-      while (newSeconds >= 60) {
-        newSeconds -= 60;
-        newMinutes += 1;
+      if (response.ok) {
+        addDebugLog('UI', 'Time adjusted via API', { adjustment: secondsToAdd });
       }
-      while (newSeconds < 0 && (newMinutes > 0 || newSeconds > -60)) {
-        newSeconds += 60;
-        newMinutes -= 1;
-      }
-      
-      // Ensure we don't go below 0:00
-      if (newMinutes < 0) {
-        newMinutes = 0;
-        newSeconds = 0;
-      }
-      
-      // Cap at 59:59
-      if (newMinutes > 59) {
-        newMinutes = 59;
-        newSeconds = 59;
-      }
-      
-      return {
-        ...prev,
-        minutes: newMinutes,
-        seconds: newSeconds
-      };
-    });
-    
-    addDebugLog('UI', 'Time adjusted by seconds', { adjustment: secondsToAdd });
+    } catch (error) {
+      addDebugLog('UI', 'Failed to adjust time', { error: error.message });
+    }
   };
 
   const setTime = async (minutes: number, seconds: number) => {
@@ -483,22 +423,12 @@ const CountdownClock = () => {
             inputRounds={inputRounds}
             betweenRoundsEnabled={betweenRoundsEnabled}
             betweenRoundsTime={betweenRoundsTime}
-            ntpOffset={ntpOffset}
-            ntpServer={ntpServer}
-            ntpFallbackServer={ntpFallbackServer}
-            lastNtpSync={lastNtpSync}
-            ntpDrift={ntpDrift}
-            ntpEnabled={ntpEnabled}
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}
             setBetweenRoundsEnabled={setBetweenRoundsEnabled}
             setBetweenRoundsTime={setBetweenRoundsTime}
-            setNtpServer={setNtpServer}
-            setNtpFallbackServer={setNtpFallbackServer}
-            setNtpEnabled={setNtpEnabled}
             onApplySettings={applySettings}
-            onSyncWithNTP={handleSyncWithNTP}
           />
         </TabsContent>
 

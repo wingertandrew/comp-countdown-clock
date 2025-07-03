@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Plus, Minus, Wifi, WifiOff } from 'lucide-react';
+import { Clock, Plus, Minus } from 'lucide-react';
 
 interface SettingsTabProps {
   inputMinutes: number;
@@ -12,29 +12,14 @@ interface SettingsTabProps {
   inputRounds: number;
   betweenRoundsEnabled: boolean;
   betweenRoundsTime: number;
-  ntpOffset: number;
-  ntpServer: string;
-  ntpFallbackServer: string;
-  lastNtpSync: string;
-  ntpDrift: number;
-  ntpEnabled: boolean;
   setInputMinutes: (value: number) => void;
   setInputSeconds: (value: number) => void;
   setInputRounds: (value: number) => void;
   setBetweenRoundsEnabled: (enabled: boolean) => void;
   setBetweenRoundsTime: (time: number) => void;
-  setNtpServer: (server: string) => void;
-  setNtpFallbackServer: (server: string) => void;
-  setNtpEnabled: (enabled: boolean) => void;
   onApplySettings: () => void;
-  onSyncWithNTP: () => void;
 }
 
-const isValidNtpUrl = (url: string): boolean => {
-  // Basic validation for NTP server URL
-  const ntpPattern = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^(\d{1,3}\.){3}\d{1,3}$/;
-  return ntpPattern.test(url.trim());
-};
 
 const SettingsTab: React.FC<SettingsTabProps> = ({
   inputMinutes,
@@ -42,22 +27,12 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   inputRounds,
   betweenRoundsEnabled,
   betweenRoundsTime,
-  ntpOffset,
-  ntpServer,
-  ntpFallbackServer,
-  lastNtpSync,
-  ntpDrift,
-  ntpEnabled,
   setInputMinutes,
   setInputSeconds,
   setInputRounds,
   setBetweenRoundsEnabled,
   setBetweenRoundsTime,
-  setNtpServer,
-  setNtpFallbackServer,
-  setNtpEnabled,
-  onApplySettings,
-  onSyncWithNTP
+  onApplySettings
 }) => {
   return (
     <div className="space-y-6 p-4 min-h-screen bg-gray-900">
@@ -164,91 +139,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </CardContent>
           </Card>
 
-          {/* NTP Status Section */}
-          <Card className="bg-gray-700 border-gray-500">
-            <CardHeader>
-              <CardTitle className="text-2xl text-white flex items-center gap-3">
-                <Clock className="w-8 h-8" />
-                Network Time Synchronization (30min intervals)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <h3 className="text-xl text-white font-semibold">Enable NTP Sync</h3>
-                  <p className="text-gray-300 text-lg">Periodically sync clock with NTP server</p>
-                </div>
-                <Switch
-                  checked={ntpEnabled}
-                  onCheckedChange={setNtpEnabled}
-                  className="scale-150"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    {ntpEnabled && ntpOffset !== null ? (
-                      <Wifi className="w-6 h-6 text-green-400" />
-                    ) : (
-                      <WifiOff className="w-6 h-6 text-red-400" />
-                    )}
-                    <span className="text-xl text-white">
-                      Status:{' '}
-                      {ntpEnabled ? (ntpOffset !== null ? 'Synchronized' : 'Failed') : 'Disabled'}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-lg text-white font-medium">Primary NTP Server:</label>
-                    <Input
-                      type="text"
-                      value={ntpServer}
-                      onChange={(e) => setNtpServer(e.target.value)}
-                      placeholder="time.google.com"
-                      className="h-12 bg-gray-700 border-gray-500 text-white text-lg"
-                    />
-                    {ntpServer && !isValidNtpUrl(ntpServer) && (
-                      <p className="text-red-400 text-sm">Invalid NTP server format</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-lg text-white font-medium">Fallback NTP Server:</label>
-                    <Input
-                      type="text"
-                      value={ntpFallbackServer}
-                      onChange={(e) => setNtpFallbackServer(e.target.value)}
-                      placeholder="pool.ntp.org"
-                      className="h-12 bg-gray-700 border-gray-500 text-white text-lg"
-                    />
-                    {ntpFallbackServer && !isValidNtpUrl(ntpFallbackServer) && (
-                      <p className="text-red-400 text-sm">Invalid NTP server format</p>
-                    )}
-                  </div>
-                  
-                  <div className="text-lg text-gray-300">
-                    <strong className="text-white">Last Sync:</strong> {lastNtpSync || 'Never'}
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="text-lg text-gray-300">
-                    <strong className="text-white">Offset:</strong> {ntpOffset !== null ? `${ntpOffset}ms` : 'N/A'}
-                  </div>
-                  
-                  <div className="text-lg text-gray-300">
-                    <strong className="text-white">Drift:</strong> {ntpDrift !== null ? `${ntpDrift}ms/min` : 'N/A'}
-                  </div>
-                  
-                  <Button onClick={onSyncWithNTP} className="h-12 text-lg bg-blue-600 hover:bg-blue-700">
-                    <Clock className="w-5 h-5 mr-2" />
-                    Sync Now
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
           
           <Button
             onClick={onApplySettings}

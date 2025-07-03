@@ -105,6 +105,16 @@ const CountdownClock = () => {
                 pauseStartTime: data.pauseStartTime
               }));
 
+              // Log NTP timestamp if present
+              if (data.ntpTimestamp) {
+                addDebugLog('NTP', 'Timestamp received via WebSocket', {
+                  ntpTimestamp: data.ntpTimestamp,
+                  serverTime: data.serverTime,
+                  localTime: Date.now(),
+                  timeDiff: data.ntpTimestamp - Date.now()
+                });
+              }
+
               if (typeof data.betweenRoundsEnabled === 'boolean') {
                 setBetweenRoundsEnabled(data.betweenRoundsEnabled);
               }

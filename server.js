@@ -1,4 +1,3 @@
-
 import express from 'express';
 import path from 'path';
 import http from 'http';
@@ -35,7 +34,9 @@ let serverClockState = {
   initialTime: { minutes: 5, seconds: 0 },
   betweenRoundsEnabled: true,
   betweenRoundsTime: 60,
-  lastUpdateTime: Date.now()
+  lastUpdateTime: Date.now(),
+  ntpTimestamp: null,
+  ntpSyncEnabled: false
 };
 
 let serverTimer = null;
@@ -121,7 +122,11 @@ function queryWorldTime() {
 }
 
 function broadcast(data) {
-  const message = JSON.stringify(data);
+  const message = JSON.stringify({
+    ...data,
+    ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null,
+    serverTime: Date.now()
+  });
   console.log('Broadcasting to', wss.clients.size, 'clients:', data.type || data.action);
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
@@ -139,14 +144,22 @@ function startServerTimer() {
   serverTimer = setInterval(() => {
     if (serverClockState.isRunning && !serverClockState.isPaused) {
       updateServerClock();
-      broadcast({ type: 'status', ...serverClockState });
+      broadcast({ 
+        type: 'status', 
+        ...serverClockState,
+        ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null
+      });
     }
     
     // Update pause duration if paused
     if (serverClockState.isPaused && serverClockState.pauseStartTime) {
       const pauseDuration = Math.floor((Date.now() - serverClockState.pauseStartTime) / 1000);
       serverClockState.currentPauseDuration = pauseDuration;
-      broadcast({ type: 'status', ...serverClockState });
+      broadcast({ 
+        type: 'status', 
+        ...serverClockState,
+        ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null
+      });
     }
   }, 1000);
 }
@@ -245,13 +258,17 @@ wss.on('connection', ws => {
     id: Math.random().toString(36).slice(2),
     ip: normalizeIp(ws._socket.remoteAddress),
     url: '',
-    hostname: '', // kept this line from `37rtxh-codex/set-default-ntp-sync-to-30-minutes` branch
+    hostname: '',
     connectedAt: Date.now()
   };
 
   connectedClients.set(ws, clientInfo);
   // Send current server state to new connections
-  ws.send(JSON.stringify({ type: 'status', ...serverClockState }));
+  ws.send(JSON.stringify({ 
+    type: 'status', 
+    ...serverClockState,
+    ntpTimestamp: serverClockState.ntpSyncEnabled ? Date.now() : null
+  }));
   broadcastClients();
   ws.send(JSON.stringify({ type: 'request-hostname' }));
 
@@ -268,6 +285,9 @@ wss.on('connection', ws => {
         }
         if (typeof data.betweenRoundsTime === 'number') {
           serverClockState.betweenRoundsTime = data.betweenRoundsTime;
+        }
+        if (typeof data.ntpSyncEnabled === 'boolean') {
+          serverClockState.ntpSyncEnabled = data.ntpSyncEnabled;
         }
         if (data.url) {
           const info = connectedClients.get(ws);
@@ -484,6 +504,21 @@ app.post('/api/set-between-rounds', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/set-ntp-sync', (req, res) => {
+  console.log('API: Set NTP sync settings');
+  const { enabled, interval, driftThreshold } = req.body;
+  if (typeof enabled === 'boolean') {
+    serverClockState.ntpSyncEnabled = enabled;
+  }
+  if (typeof interval === 'number') {
+    serverClockState.ntpSyncInterval = interval;
+  }
+  if (typeof driftThreshold === 'number') {
+    serverClockState.ntpDriftThreshold = driftThreshold;
+  }
+  res.json({ success: true });
+});
+
 app.get('/api/ntp-sync', async (req, res) => {
   const ntpServer = req.query.server || 'time.google.com';
   try {
@@ -573,6 +608,10 @@ app.get('/api/docs', (req, res) => {
         "POST /api/set-between-rounds": {
           description: "Configure between rounds timer",
           body: { enabled: "boolean", time: "number (seconds)" }
+        },
+        "POST /api/set-ntp-sync": {
+          description: "Configure NTP sync settings",
+          body: { enabled: "boolean", interval: "number (seconds)", driftThreshold: "number (milliseconds)" }
         }
       },
       status: {

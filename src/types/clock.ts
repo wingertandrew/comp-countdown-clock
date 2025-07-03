@@ -1,4 +1,3 @@
-
 export interface ClockState {
   minutes: number;
   seconds: number;
@@ -20,6 +19,8 @@ export interface ClockState {
   ntpSyncInterval: number;
   ntpDriftThreshold: number;
   masterClockStartTime?: number;
+  ntpTimestamp?: number | null;
+  serverTime?: number;
 }
 
 export interface DebugLogEntry {

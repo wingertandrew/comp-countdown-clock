@@ -175,6 +175,7 @@ const CountdownClock = () => {
 
   // NTP Sync Management
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (ntpSyncEnabled) {
       const config = {
         ...DEFAULT_NTP_CONFIG,

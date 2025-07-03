@@ -1,4 +1,4 @@
-
+import dgram from 'dgram';
 interface NTPResponse {
   offset: number;
   delay: number;
@@ -31,23 +31,89 @@ export class NTPSyncManager {
 
   async syncWithNTP(server: string): Promise<NTPResponse> {
     try {
-      // Simple NTP implementation using HTTP-based time API as fallback
-      // In a real implementation, you'd use proper NTP protocol
-      const response = await fetch(`https://worldtimeapi.org/api/timezone/Etc/UTC`);
-      const data = await response.json();
-      
-      const serverTime = new Date(data.utc_datetime).getTime();
-      const localTime = Date.now();
-      const offset = serverTime - localTime;
-      
-      return {
-        offset,
-        delay: 0, // Would calculate RTT in real NTP
-        timestamp: localTime
-      };
+      return await this.queryUdpTime(server);
     } catch (error) {
-      throw new Error(`NTP sync failed for ${server}: ${error.message}`);
+      console.warn(`UDP NTP failed for ${server}:`, error);
+      return await this.queryHttpTime();
     }
+  }
+
+  private queryUdpTime(server: string): Promise<NTPResponse> {
+    return new Promise((resolve, reject) => {
+      const client = dgram.createSocket('udp4');
+      const packet = Buffer.alloc(48);
+      packet[0] = 0x1b; // LI = 0, VN = 3, Mode = 3 (client)
+
+      const now = Date.now();
+      const ntpSec = Math.floor(now / 1000) + 2208988800;
+      const ntpFrac = Math.floor(((now % 1000) / 1000) * 2 ** 32);
+      packet.writeUInt32BE(ntpSec, 40);
+      packet.writeUInt32BE(ntpFrac, 44);
+
+      const timeout = setTimeout(() => {
+        client.close();
+        reject(new Error('NTP request timed out'));
+      }, 10000);
+
+      client.once('error', (err: Error) => {
+        clearTimeout(timeout);
+        client.close();
+        reject(err);
+      });
+
+      const t1 = now;
+
+      const toMillis = (sec: number, frac: number) => {
+        const ms = (sec - 2208988800) * 1000;
+        const fracMs = Math.round((frac / 2 ** 32) * 1000);
+        return ms + fracMs;
+      };
+
+      client.once('message', (msg: Buffer) => {
+        const t4 = Date.now();
+        clearTimeout(timeout);
+        client.close();
+
+        const originateSec = msg.readUInt32BE(24);
+        const originateFrac = msg.readUInt32BE(28);
+        const receiveSec = msg.readUInt32BE(32);
+        const receiveFrac = msg.readUInt32BE(36);
+        const transmitSec = msg.readUInt32BE(40);
+        const transmitFrac = msg.readUInt32BE(44);
+
+        const T1 = toMillis(originateSec, originateFrac);
+        const T2 = toMillis(receiveSec, receiveFrac);
+        const T3 = toMillis(transmitSec, transmitFrac);
+        const T4 = t4;
+
+        const offset = ((T2 - T1) + (T3 - T4)) / 2;
+        const delay = (T4 - T1) - (T3 - T2);
+
+        resolve({ offset, delay, timestamp: T4 });
+      });
+
+      client.send(packet, 0, packet.length, 123, server, (err: Error | null) => {
+        if (err) {
+          clearTimeout(timeout);
+          client.close();
+          reject(err);
+        }
+      });
+    });
+  }
+
+  private async queryHttpTime(): Promise<NTPResponse> {
+    const before = Date.now();
+    const response = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
+    const data = await response.json();
+    const after = Date.now();
+
+    const serverTime = new Date(data.utc_datetime).getTime();
+    const delay = after - before;
+    const clientTime = before + delay / 2;
+    const offset = serverTime - clientTime;
+
+    return { offset, delay, timestamp: clientTime };
   }
 
   async performSync(): Promise<void> {

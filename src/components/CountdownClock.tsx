@@ -116,15 +116,16 @@ const CountdownClock = () => {
                 });
               }
 
+              // Only update these settings if they exist in the server response
+              // This prevents the server from overriding local setting changes
               if (typeof data.betweenRoundsEnabled === 'boolean') {
                 setBetweenRoundsEnabled(data.betweenRoundsEnabled);
               }
               if (typeof data.betweenRoundsTime === 'number') {
                 setBetweenRoundsTime(data.betweenRoundsTime);
               }
-              if (typeof data.ntpSyncEnabled === 'boolean') {
-                setNtpSyncEnabled(data.ntpSyncEnabled);
-              }
+              // Remove the automatic NTP sync state updates from server
+              // The server should only update NTP state when explicitly set via API
               
               if (data.initialTime) {
                 setInitialTime(data.initialTime);

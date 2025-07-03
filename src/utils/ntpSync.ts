@@ -1,4 +1,3 @@
-import dgram from 'dgram';
 interface NTPResponse {
   offset: number;
   delay: number;
@@ -30,16 +29,21 @@ export class NTPSyncManager {
   }
 
   async syncWithNTP(server: string): Promise<NTPResponse> {
-    try {
-      return await this.queryUdpTime(server);
-    } catch (error) {
-      console.warn(`UDP NTP failed for ${server}:`, error);
-      return await this.queryHttpTime();
+    if (typeof window === 'undefined') {
+      try {
+        return await this.queryUdpTime(server);
+      } catch (error) {
+        console.warn(`UDP NTP failed for ${server}:`, error);
+        return await this.queryHttpTime();
+      }
     }
+
+    return await this.queryServerTime(server);
   }
 
   private queryUdpTime(server: string): Promise<NTPResponse> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      const { default: dgram } = await import('dgram');
       const client = dgram.createSocket('udp4');
       const packet = Buffer.alloc(48);
       packet[0] = 0x1b; // LI = 0, VN = 3, Mode = 3 (client)
@@ -100,6 +104,19 @@ export class NTPSyncManager {
         }
       });
     });
+  }
+
+  private async queryServerTime(server: string): Promise<NTPResponse> {
+    const before = Date.now();
+    const response = await fetch(`/api/ntp-sync?server=${encodeURIComponent(server)}`);
+    const data = await response.json();
+    const after = Date.now();
+
+    const delay = after - before;
+    const serverTime = after - delay / 2 + (data.offset || 0);
+    const offset = serverTime - after;
+
+    return { offset, delay, timestamp: after };
   }
 
   private async queryHttpTime(): Promise<NTPResponse> {

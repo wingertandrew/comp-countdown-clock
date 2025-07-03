@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Bug } from 'lucide-react';
@@ -43,6 +42,7 @@ const CountdownClock = () => {
   const [ntpOffset, setNtpOffset] = useState(0);
   const [ipAddress, setIpAddress] = useState('');
   const [ntpServer, setNtpServer] = useState('time.google.com');
+  const [ntpFallbackServer, setNtpFallbackServer] = useState('pool.ntp.org');
   const [ntpEnabled, setNtpEnabled] = useState(true);
   const [ntpDrift, setNtpDrift] = useState(0);
   const [lastNtpSync, setLastNtpSync] = useState('');
@@ -65,8 +65,20 @@ const CountdownClock = () => {
       setLastNtpSync(lastSync);
       addDebugLog('API', 'NTP sync completed', { offset, server: ntpServer });
     } catch (error) {
-      addDebugLog('API', 'NTP sync failed', { error: error.message, fallback: 'local time' });
-      setNtpOffset(0);
+      // Try fallback server
+      try {
+        const { offset, lastSync } = await syncWithNTP(ntpFallbackServer);
+        setNtpOffset(offset);
+        setLastNtpSync(lastSync);
+        addDebugLog('API', 'NTP sync completed with fallback', { offset, server: ntpFallbackServer });
+      } catch (fallbackError) {
+        addDebugLog('API', 'NTP sync failed on both servers', { 
+          primaryError: error.message, 
+          fallbackError: fallbackError.message,
+          fallback: 'local time' 
+        });
+        setNtpOffset(0);
+      }
     }
   };
 
@@ -78,7 +90,7 @@ const CountdownClock = () => {
       DEFAULT_NTP_SYNC_INTERVAL
     );
     return () => clearInterval(ntpInterval);
-  }, [ntpServer, ntpEnabled, handleSyncWithNTP]);
+  }, [ntpServer, ntpFallbackServer, ntpEnabled, handleSyncWithNTP]);
 
   // WebSocket for server communication
   useEffect(() => {
@@ -143,7 +155,7 @@ const CountdownClock = () => {
             }
           } catch (error) {
             console.error('Invalid WebSocket message:', error);
-            addDebugLog('WEBSOCKET', 'Invalid message', { error: error.message });
+            addDebugLog('WEBSOCKET', 'Invalid message', { error });
           }
         };
 
@@ -207,7 +219,7 @@ const CountdownClock = () => {
         toast({ title: `Round ${clockState.currentRound - 1} Started` });
         break;
       case 'adjust-time':
-        toast({ title: 'Time Adjusted' });
+        // Removed toast notification for time adjustments
         break;
     }
   };
@@ -315,7 +327,8 @@ const CountdownClock = () => {
   };
 
   const adjustTimeBySeconds = (secondsToAdd: number) => {
-    if (clockState.isRunning && !clockState.isPaused) return; // Don't adjust while running
+    // Only allow adjustment when clock is not running or is paused
+    if (clockState.isRunning && !clockState.isPaused) return;
     if (clockState.isBetweenRounds) return; // Don't adjust during between rounds
     
     setClockState(prev => {
@@ -470,21 +483,23 @@ const CountdownClock = () => {
             inputRounds={inputRounds}
             betweenRoundsEnabled={betweenRoundsEnabled}
             betweenRoundsTime={betweenRoundsTime}
-          ntpOffset={ntpOffset}
-          ntpServer={ntpServer}
-          lastNtpSync={lastNtpSync}
-          ntpDrift={ntpDrift}
-          ntpEnabled={ntpEnabled}
-          setInputMinutes={setInputMinutes}
-          setInputSeconds={setInputSeconds}
-          setInputRounds={setInputRounds}
-          setBetweenRoundsEnabled={setBetweenRoundsEnabled}
-          setBetweenRoundsTime={setBetweenRoundsTime}
-          setNtpServer={setNtpServer}
-          setNtpEnabled={setNtpEnabled}
-          onApplySettings={applySettings}
-          onSyncWithNTP={handleSyncWithNTP}
-        />
+            ntpOffset={ntpOffset}
+            ntpServer={ntpServer}
+            ntpFallbackServer={ntpFallbackServer}
+            lastNtpSync={lastNtpSync}
+            ntpDrift={ntpDrift}
+            ntpEnabled={ntpEnabled}
+            setInputMinutes={setInputMinutes}
+            setInputSeconds={setInputSeconds}
+            setInputRounds={setInputRounds}
+            setBetweenRoundsEnabled={setBetweenRoundsEnabled}
+            setBetweenRoundsTime={setBetweenRoundsTime}
+            setNtpServer={setNtpServer}
+            setNtpFallbackServer={setNtpFallbackServer}
+            setNtpEnabled={setNtpEnabled}
+            onApplySettings={applySettings}
+            onSyncWithNTP={handleSyncWithNTP}
+          />
         </TabsContent>
 
         <TabsContent value="info">

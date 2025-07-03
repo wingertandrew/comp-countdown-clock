@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const FastAdjustButton: React.FC<FastAdjustButtonProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isHolding, setIsHolding] = useState(false);
+  const hasTriggeredHold = useRef(false);
 
   const clearTimers = useCallback(() => {
     if (timerRef.current) {
@@ -31,32 +33,46 @@ const FastAdjustButton: React.FC<FastAdjustButtonProps> = ({
       intervalRef.current = null;
     }
     setIsHolding(false);
+    hasTriggeredHold.current = false;
   }, []);
 
   const startHold = useCallback(() => {
     if (disabled) return;
     
-    // First adjustment happens immediately
-    onAdjust(adjustAmount);
+    hasTriggeredHold.current = false;
     setIsHolding(true);
     
-    // Start fast repeat after 500ms
+    // Start hold detection after 300ms
     timerRef.current = setTimeout(() => {
+      hasTriggeredHold.current = true;
+      // First adjustment happens when hold is detected
+      onAdjust(adjustAmount);
+      
+      // Start fast repeat every 150ms
       intervalRef.current = setInterval(() => {
         onAdjust(adjustAmount);
-      }, 100); // Fast repeat every 100ms
-    }, 500);
+      }, 150);
+    }, 300);
   }, [disabled, onAdjust, adjustAmount]);
+
+  const endHold = useCallback(() => {
+    clearTimers();
+    
+    // If we haven't triggered a hold, this was a single press
+    if (!hasTriggeredHold.current) {
+      onAdjust(adjustAmount);
+    }
+  }, [clearTimers, onAdjust, adjustAmount]);
 
   return (
     <Button
       className={cn('select-none', className)}
       disabled={disabled}
       onMouseDown={startHold}
-      onMouseUp={clearTimers}
+      onMouseUp={endHold}
       onMouseLeave={clearTimers}
       onTouchStart={startHold}
-      onTouchEnd={clearTimers}
+      onTouchEnd={endHold}
       style={{ 
         backgroundColor: isHolding ? 'rgba(156, 163, 175, 0.8)' : undefined 
       }}

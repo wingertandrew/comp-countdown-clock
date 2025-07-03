@@ -50,7 +50,6 @@ const DebugTab: React.FC<DebugTabProps> = ({
                   <span className="text-white font-semibold">Client {index + 1}</span>
                 </div>
                 <div className="text-gray-300 text-sm space-y-1">
-                  <div>ID: {client.id || 'Unknown'}</div>
                   <div>Connected: {client.connectedAt ? new Date(client.connectedAt).toLocaleTimeString() : 'Unknown'}</div>
                   <div>IP: {client.ip || 'Unknown'}</div>
                   <div>Hostname: {client.hostname || 'Unknown'}</div>

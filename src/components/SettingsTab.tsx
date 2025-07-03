@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ interface SettingsTabProps {
   betweenRoundsTime: number;
   ntpOffset: number;
   ntpServer: string;
+  ntpFallbackServer: string;
   lastNtpSync: string;
   ntpDrift: number;
   ntpEnabled: boolean;
@@ -22,6 +24,7 @@ interface SettingsTabProps {
   setBetweenRoundsEnabled: (enabled: boolean) => void;
   setBetweenRoundsTime: (time: number) => void;
   setNtpServer: (server: string) => void;
+  setNtpFallbackServer: (server: string) => void;
   setNtpEnabled: (enabled: boolean) => void;
   onApplySettings: () => void;
   onSyncWithNTP: () => void;
@@ -41,6 +44,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   betweenRoundsTime,
   ntpOffset,
   ntpServer,
+  ntpFallbackServer,
   lastNtpSync,
   ntpDrift,
   ntpEnabled,
@@ -50,6 +54,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   setBetweenRoundsEnabled,
   setBetweenRoundsTime,
   setNtpServer,
+  setNtpFallbackServer,
   setNtpEnabled,
   onApplySettings,
   onSyncWithNTP
@@ -164,7 +169,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             <CardHeader>
               <CardTitle className="text-2xl text-white flex items-center gap-3">
                 <Clock className="w-8 h-8" />
-                Network Time Synchronization
+                Network Time Synchronization (30min intervals)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -195,7 +200,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="block text-lg text-white font-medium">NTP Server URL:</label>
+                    <label className="block text-lg text-white font-medium">Primary NTP Server:</label>
                     <Input
                       type="text"
                       value={ntpServer}
@@ -204,6 +209,20 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                       className="h-12 bg-gray-700 border-gray-500 text-white text-lg"
                     />
                     {ntpServer && !isValidNtpUrl(ntpServer) && (
+                      <p className="text-red-400 text-sm">Invalid NTP server format</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-lg text-white font-medium">Fallback NTP Server:</label>
+                    <Input
+                      type="text"
+                      value={ntpFallbackServer}
+                      onChange={(e) => setNtpFallbackServer(e.target.value)}
+                      placeholder="pool.ntp.org"
+                      className="h-12 bg-gray-700 border-gray-500 text-white text-lg"
+                    />
+                    {ntpFallbackServer && !isValidNtpUrl(ntpFallbackServer) && (
                       <p className="text-red-400 text-sm">Invalid NTP server format</p>
                     )}
                   </div>

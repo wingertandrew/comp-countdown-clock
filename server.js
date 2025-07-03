@@ -36,10 +36,13 @@ let serverClockState = {
   betweenRoundsTime: 60,
   lastUpdateTime: Date.now(),
   ntpTimestamp: null,
-  ntpSyncEnabled: false
+  ntpSyncEnabled: false,
+  ntpSyncInterval: parseInt(process.env.NTP_SYNC_INTERVAL || '1800', 10),
+  ntpOffset: 0
 };
 
 let serverTimer = null;
+let ntpSyncTimer = null;
 
 // Track connected WebSocket clients
 const connectedClients = new Map();
@@ -133,6 +136,41 @@ function broadcast(data) {
       client.send(message);
     }
   });
+}
+
+async function syncWithNtp() {
+  const ntpServer = process.env.NTP_SERVER || 'time.google.com';
+  try {
+    const before = Date.now();
+    let serverTime;
+    try {
+      serverTime = await queryNtpTime(ntpServer);
+    } catch (err) {
+      console.error('NTP sync failed:', err);
+      serverTime = await queryWorldTime();
+    }
+    const after = Date.now();
+    const networkDelay = (after - before) / 2;
+    const clientTime = before + networkDelay;
+    const offset = serverTime - clientTime;
+    serverClockState.ntpTimestamp = serverTime;
+    serverClockState.ntpOffset = offset;
+    broadcast({ type: 'ntp-sync', offset });
+  } catch (err) {
+    console.error('Time sync failed:', err);
+  }
+}
+
+function startNtpSyncTimer() {
+  if (ntpSyncTimer) {
+    clearInterval(ntpSyncTimer);
+    ntpSyncTimer = null;
+  }
+  if (!serverClockState.ntpSyncEnabled) return;
+  const interval = (serverClockState.ntpSyncInterval || 1800) * 1000;
+  console.log('Starting NTP sync timer every', interval / 1000, 'seconds');
+  ntpSyncTimer = setInterval(syncWithNtp, interval);
+  syncWithNtp();
 }
 
 function startServerTimer() {
@@ -516,6 +554,7 @@ app.post('/api/set-ntp-sync', (req, res) => {
   if (typeof driftThreshold === 'number') {
     serverClockState.ntpDriftThreshold = driftThreshold;
   }
+  startNtpSyncTimer();
   res.json({ success: true });
 });
 
@@ -694,4 +733,5 @@ server.listen(PORT, () => {
   console.log(`API Documentation: http://localhost:${PORT}/api/docs`);
   console.log('Server-side clock initialized and running');
   broadcastClients();
+  startNtpSyncTimer();
 });

@@ -33,6 +33,10 @@ npm run dev
 
 The application will be available at `http://localhost:8080`
 
+### Environment Variables
+
+- `NTP_SYNC_INTERVAL` – Seconds between automatic NTP syncs. Defaults to `1800` (30 minutes).
+
 ### Development on macOS
 1. Install Node.js via [Homebrew](https://brew.sh/) with `brew install node` or download it from the official website.
 2. The "UFC Sans" typeface is loaded automatically. You can also install it system wide if desired.
@@ -114,6 +118,13 @@ curl http://localhost:8080/api/status
 ```bash
 # Sync time using the default server (time.google.com)
 curl http://localhost:8080/api/ntp-sync
+```
+
+Enable periodic syncing with:
+```bash
+curl -X POST http://localhost:8080/api/set-ntp-sync \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true, "interval": 1800}'
 ```
 
 If the UDP request to the NTP server fails (for example when port 123 is

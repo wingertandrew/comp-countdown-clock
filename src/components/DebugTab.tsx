@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download } from 'lucide-react';
-import { DebugLogEntry, DebugFilter } from '@/types/clock';
+import { DebugLogEntry, DebugFilter, NTPSyncStatus } from '@/types/clock';
 import { downloadCSV } from '@/utils/clockUtils';
 
 interface DebugTabProps {
@@ -13,6 +13,7 @@ interface DebugTabProps {
   onClearDebugLog: () => void;
   filteredDebugLog: DebugLogEntry[];
   connectedClients: any[];
+  ntpSyncStatus: NTPSyncStatus;
 }
 
 const DebugTab: React.FC<DebugTabProps> = ({
@@ -21,7 +22,8 @@ const DebugTab: React.FC<DebugTabProps> = ({
   setDebugFilter,
   onClearDebugLog,
   filteredDebugLog,
-  connectedClients
+  connectedClients,
+  ntpSyncStatus
 }) => {
   const handleDownloadCSV = () => {
     const csvData = debugLog.map(entry => ({
@@ -66,6 +68,37 @@ const DebugTab: React.FC<DebugTabProps> = ({
         </CardContent>
       </Card>
 
+      {/* NTP Status Card */}
+      {ntpSyncStatus.enabled && (
+        <Card className="bg-gray-800 border-gray-600">
+          <CardHeader>
+            <CardTitle className="text-2xl text-white mb-4">NTP Sync Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-700 p-4 rounded-xl">
+                <div className="text-gray-300 text-sm">Status</div>
+                <div className={`text-lg font-bold ${ntpSyncStatus.healthy ? 'text-green-400' : 'text-red-400'}`}>
+                  {ntpSyncStatus.healthy ? 'Healthy' : 'Unhealthy'}
+                </div>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-xl">
+                <div className="text-gray-300 text-sm">Time Offset</div>
+                <div className="text-lg font-bold text-white">{ntpSyncStatus.timeOffset}ms</div>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-xl">
+                <div className="text-gray-300 text-sm">Sync Count</div>
+                <div className="text-lg font-bold text-blue-400">{ntpSyncStatus.syncCount}</div>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-xl">
+                <div className="text-gray-300 text-sm">Error Count</div>
+                <div className="text-lg font-bold text-red-400">{ntpSyncStatus.errorCount}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="bg-gray-800 border-gray-600">
         <CardHeader>
           <CardTitle className="text-3xl text-white mb-4">Debug Log</CardTitle>
@@ -99,6 +132,13 @@ const DebugTab: React.FC<DebugTabProps> = ({
               WebSocket ({debugLog.filter(e => e.source === 'WEBSOCKET').length})
             </Button>
             <Button
+              variant={debugFilter === 'NTP' ? 'default' : 'outline'}
+              onClick={() => setDebugFilter('NTP')}
+              className="text-lg h-12 px-6 text-white bg-gray-700 hover:bg-gray-600"
+            >
+              NTP ({debugLog.filter(e => e.source === 'NTP').length})
+            </Button>
+            <Button
               variant="outline"
               onClick={handleDownloadCSV}
               className="text-lg h-12 px-6 text-white bg-blue-600 hover:bg-blue-700"
@@ -126,6 +166,7 @@ const DebugTab: React.FC<DebugTabProps> = ({
                   <span className={`px-3 py-1 rounded text-lg font-bold ${
                     entry.source === 'UI' ? 'bg-blue-600 text-white' :
                     entry.source === 'API' ? 'bg-green-600 text-white' :
+                    entry.source === 'NTP' ? 'bg-orange-600 text-white' :
                     'bg-purple-600 text-white'
                   }`}>
                     {entry.source}

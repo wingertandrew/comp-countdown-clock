@@ -1,5 +1,4 @@
 import express from 'express';
-import path from 'path';
 import http from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
 import dgram from 'dgram';

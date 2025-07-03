@@ -10,6 +10,7 @@ import ClockDisplay from './ClockDisplay';
 import SettingsTab from './SettingsTab';
 import ApiInfoTab from './ApiInfoTab';
 import DebugTab from './DebugTab';
+import FloatingClock from './FloatingClock';
 
 const CountdownClock = () => {
   const [clockState, setClockState] = useState<ClockState>({
@@ -492,6 +493,14 @@ const CountdownClock = () => {
             Debug
           </TabsTrigger>
         </TabsList>
+
+        {/* Show FloatingClock on non-clock tabs */}
+        {activeTab !== 'clock' && (
+          <FloatingClock 
+            clockState={clockState} 
+            ntpSyncStatus={ntpSyncStatus}
+          />
+        )}
 
         <TabsContent value="clock" className="space-y-4">
           <ClockDisplay

@@ -349,6 +349,18 @@ wss.on('connection', ws => {
             stopNtpSync();
           }
         }
+        if (typeof data.ntpSyncInterval === 'number') {
+          serverClockState.ntpSyncInterval = data.ntpSyncInterval;
+        }
+        if (typeof data.ntpDriftThreshold === 'number') {
+          serverClockState.ntpDriftThreshold = data.ntpDriftThreshold;
+        }
+        if (
+          typeof data.ntpSyncInterval === 'number' ||
+          typeof data.ntpDriftThreshold === 'number'
+        ) {
+          startNtpSync();
+        }
         if (data.url) {
           const info = connectedClients.get(ws);
           if (info) {

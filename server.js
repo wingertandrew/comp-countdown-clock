@@ -297,13 +297,14 @@ function updateServerClock() {
         serverClockState.elapsedSeconds = elapsedSeconds;
         console.log('Timer completed - all rounds finished');
       }
-    } else {
-      serverClockState.minutes = newMinutes;
-      serverClockState.seconds = adjustedSeconds;
-      serverClockState.elapsedMinutes = elapsedMinutes;
-      serverClockState.elapsedSeconds = elapsedSeconds;
-    }
+  } else {
+    serverClockState.minutes = newMinutes;
+    serverClockState.seconds = adjustedSeconds;
+    serverClockState.elapsedMinutes = elapsedMinutes;
+    serverClockState.elapsedSeconds = elapsedSeconds;
   }
+  }
+}
 }
 
 wss.on('connection', ws => {

@@ -2,15 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ClockState } from '@/types/clock';
+import { ClockState, NTPSyncStatus } from '@/types/clock';
 import { useDebugLog } from '@/hooks/useDebugLog';
+import { NTPSyncManager, DEFAULT_NTP_CONFIG } from '@/utils/ntpSync';
 
 import ClockDisplay from './ClockDisplay';
 import SettingsTab from './SettingsTab';
 import ApiInfoTab from './ApiInfoTab';
 import DebugTab from './DebugTab';
-
-
 
 const CountdownClock = () => {
   const [clockState, setClockState] = useState<ClockState>({
@@ -29,7 +28,10 @@ const CountdownClock = () => {
     betweenRoundsMinutes: 0,
     betweenRoundsSeconds: 0,
     betweenRoundsEnabled: true,
-    betweenRoundsTime: 60
+    betweenRoundsTime: 60,
+    ntpSyncEnabled: false,
+    ntpSyncInterval: 30000,
+    ntpDriftThreshold: 50
   });
 
   const [initialTime, setInitialTime] = useState({ minutes: 5, seconds: 0 });
@@ -38,12 +40,24 @@ const CountdownClock = () => {
   const [inputRounds, setInputRounds] = useState(3);
   const [betweenRoundsEnabled, setBetweenRoundsEnabled] = useState(true);
   const [betweenRoundsTime, setBetweenRoundsTime] = useState(60);
+  const [ntpSyncEnabled, setNtpSyncEnabled] = useState(false);
+  const [ntpSyncInterval, setNtpSyncInterval] = useState(30000);
+  const [ntpDriftThreshold, setNtpDriftThreshold] = useState(50);
+  const [ntpSyncStatus, setNtpSyncStatus] = useState<NTPSyncStatus>({
+    enabled: false,
+    lastSync: 0,
+    timeOffset: 0,
+    healthy: false,
+    syncCount: 0,
+    errorCount: 0
+  });
   const [activeTab, setActiveTab] = useState('clock');
   const [ipAddress, setIpAddress] = useState('');
   const [connectedClients, setConnectedClients] = useState<any[]>([]);
 
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
+  const ntpManagerRef = useRef<NTPSyncManager | null>(null);
   
   const { addDebugLog, ...debugLogProps } = useDebugLog();
 
@@ -51,7 +65,6 @@ const CountdownClock = () => {
   useEffect(() => {
     setIpAddress(window.location.hostname || 'localhost');
   }, []);
-
 
   // WebSocket for server communication
   useEffect(() => {
@@ -67,14 +80,16 @@ const CountdownClock = () => {
           console.log('WebSocket connected - syncing with server');
           addDebugLog('WEBSOCKET', 'Connected to server', { endpoint: wsUrl });
           
-          // Sync current settings to server
           ws.send(JSON.stringify({
             type: 'sync-settings',
             url: window.location.href,
             initialTime,
             totalRounds: inputRounds,
             betweenRoundsEnabled,
-            betweenRoundsTime
+            betweenRoundsTime,
+            ntpSyncEnabled,
+            ntpSyncInterval,
+            ntpDriftThreshold
           }));
         };
 
@@ -84,7 +99,6 @@ const CountdownClock = () => {
             addDebugLog('WEBSOCKET', 'Received from server', data);
             
             if (data.type === 'status') {
-              // Update local state from server
               setClockState(prev => ({
                 ...prev,
                 ...data,
@@ -96,6 +110,9 @@ const CountdownClock = () => {
               }
               if (typeof data.betweenRoundsTime === 'number') {
                 setBetweenRoundsTime(data.betweenRoundsTime);
+              }
+              if (typeof data.ntpSyncEnabled === 'boolean') {
+                setNtpSyncEnabled(data.ntpSyncEnabled);
               }
               
               if (data.initialTime) {
@@ -145,9 +162,62 @@ const CountdownClock = () => {
     connectWebSocket();
   }, []);
 
+  // NTP Sync Management
+  useEffect(() => {
+    if (ntpSyncEnabled) {
+      const config = {
+        ...DEFAULT_NTP_CONFIG,
+        syncInterval: ntpSyncInterval,
+        driftThreshold: ntpDriftThreshold
+      };
+      
+      ntpManagerRef.current = new NTPSyncManager(config);
+      ntpManagerRef.current.setCallbacks(
+        (data) => {
+          setNtpSyncStatus(prev => ({
+            ...prev,
+            lastSync: data.timestamp,
+            timeOffset: data.offset,
+            healthy: true,
+            syncCount: prev.syncCount + 1
+          }));
+          addDebugLog('NTP', 'Time synchronized', {
+            server: data.server,
+            offset: data.offset,
+            timestamp: data.timestamp
+          });
+        },
+        (error) => {
+          setNtpSyncStatus(prev => ({
+            ...prev,
+            healthy: false,
+            errorCount: prev.errorCount + 1
+          }));
+          addDebugLog('NTP', 'Sync error', { error });
+        }
+      );
+      
+      ntpManagerRef.current.startSync();
+      setNtpSyncStatus(prev => ({ ...prev, enabled: true }));
+      
+      return () => {
+        if (ntpManagerRef.current) {
+          ntpManagerRef.current.stopSync();
+          ntpManagerRef.current = null;
+        }
+        setNtpSyncStatus(prev => ({ ...prev, enabled: false }));
+      };
+    } else {
+      if (ntpManagerRef.current) {
+        ntpManagerRef.current.stopSync();
+        ntpManagerRef.current = null;
+      }
+      setNtpSyncStatus(prev => ({ ...prev, enabled: false }));
+    }
+  }, [ntpSyncEnabled, ntpSyncInterval, ntpDriftThreshold]);
+
   const handleExternalCommand = (command: any) => {
     addDebugLog('API', 'External command received', command);
-    // Commands are now handled server-side, client just receives updates
     switch (command.action) {
       case 'start':
         toast({ title: "Timer Started" });
@@ -180,7 +250,6 @@ const CountdownClock = () => {
         toast({ title: `Round ${clockState.currentRound - 1} Started` });
         break;
       case 'adjust-time':
-        // Removed toast notification for time adjustments
         break;
     }
   };
@@ -288,9 +357,8 @@ const CountdownClock = () => {
   };
 
   const adjustTimeBySeconds = async (secondsToAdd: number) => {
-    // Only allow adjustment when clock is not running or is paused
     if (clockState.isRunning && !clockState.isPaused) return;
-    if (clockState.isBetweenRounds) return; // Don't adjust during between rounds
+    if (clockState.isBetweenRounds) return;
     
     try {
       const response = await fetch('/api/adjust-time', {
@@ -320,7 +388,6 @@ const CountdownClock = () => {
       
       if (response.ok) {
         setInitialTime({ minutes: validMinutes, seconds: validSeconds });
-        // Update displayed time immediately so UI reflects the change
         setClockState(prev => ({
           ...prev,
           minutes: validMinutes,
@@ -356,21 +423,33 @@ const CountdownClock = () => {
       time: { minutes: inputMinutes, seconds: inputSeconds },
       rounds: inputRounds,
       betweenRoundsEnabled,
-      betweenRoundsTime
+      betweenRoundsTime,
+      ntpSyncEnabled,
+      ntpSyncInterval,
+      ntpDriftThreshold
     });
     
     await setTime(inputMinutes, inputSeconds);
     await setRounds(inputRounds);
     
-    // Sync between rounds settings
     try {
       await fetch('/api/set-between-rounds', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: betweenRoundsEnabled, time: betweenRoundsTime })
       });
+      
+      await fetch('/api/set-ntp-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          enabled: ntpSyncEnabled, 
+          interval: ntpSyncInterval,
+          driftThreshold: ntpDriftThreshold
+        })
+      });
     } catch (error) {
-      addDebugLog('UI', 'Failed to set between rounds settings', { error: error.message });
+      addDebugLog('UI', 'Failed to sync settings with server', { error: error.message });
     }
     
     setActiveTab('clock');
@@ -407,6 +486,7 @@ const CountdownClock = () => {
             ipAddress={ipAddress}
             betweenRoundsEnabled={betweenRoundsEnabled}
             betweenRoundsTime={betweenRoundsTime}
+            ntpSyncStatus={ntpSyncStatus}
             onTogglePlayPause={togglePlayPause}
             onNextRound={nextRound}
             onPreviousRound={previousRound}
@@ -423,11 +503,17 @@ const CountdownClock = () => {
             inputRounds={inputRounds}
             betweenRoundsEnabled={betweenRoundsEnabled}
             betweenRoundsTime={betweenRoundsTime}
+            ntpSyncEnabled={ntpSyncEnabled}
+            ntpSyncInterval={ntpSyncInterval}
+            ntpDriftThreshold={ntpDriftThreshold}
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}
             setBetweenRoundsEnabled={setBetweenRoundsEnabled}
             setBetweenRoundsTime={setBetweenRoundsTime}
+            setNtpSyncEnabled={setNtpSyncEnabled}
+            setNtpSyncInterval={setNtpSyncInterval}
+            setNtpDriftThreshold={setNtpDriftThreshold}
             onApplySettings={applySettings}
           />
         </TabsContent>
@@ -444,6 +530,7 @@ const CountdownClock = () => {
             {...debugLogProps}
             onClearDebugLog={debugLogProps.clearDebugLog}
             connectedClients={connectedClients}
+            ntpSyncStatus={ntpSyncStatus}
           />
         </TabsContent>
       </Tabs>

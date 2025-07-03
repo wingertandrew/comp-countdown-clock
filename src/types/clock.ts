@@ -16,13 +16,26 @@ export interface ClockState {
   betweenRoundsSeconds: number;
   betweenRoundsEnabled: boolean;
   betweenRoundsTime: number;
+  ntpSyncEnabled: boolean;
+  ntpSyncInterval: number;
+  ntpDriftThreshold: number;
+  masterClockStartTime?: number;
 }
 
 export interface DebugLogEntry {
   timestamp: string;
-  source: 'UI' | 'API' | 'WEBSOCKET';
+  source: 'UI' | 'API' | 'WEBSOCKET' | 'NTP';
   action: string;
   details?: any;
 }
 
-export type DebugFilter = 'ALL' | 'UI' | 'API' | 'WEBSOCKET';
+export type DebugFilter = 'ALL' | 'UI' | 'API' | 'WEBSOCKET' | 'NTP';
+
+export interface NTPSyncStatus {
+  enabled: boolean;
+  lastSync: number;
+  timeOffset: number;
+  healthy: boolean;
+  syncCount: number;
+  errorCount: number;
+}

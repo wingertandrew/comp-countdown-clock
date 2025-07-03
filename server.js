@@ -37,10 +37,13 @@ let serverClockState = {
   lastUpdateTime: Date.now(),
   ntpTimestamp: null,
   ntpSyncEnabled: false,
-  ntpOffset: 0
+  ntpOffset: 0,
+  ntpSyncInterval: Number(process.env.NTP_SYNC_INTERVAL) || 1800000,
+  ntpDriftThreshold: Number(process.env.NTP_DRIFT_THRESHOLD) || 50
 };
 
 let serverTimer = null;
+let ntpSyncTimer = null;
 
 // Track connected WebSocket clients
 const connectedClients = new Map();
@@ -137,6 +140,45 @@ function broadcast(data) {
       client.send(message);
     }
   });
+}
+
+async function performNtpSync() {
+  const ntpServer = process.env.NTP_SERVER || 'time.google.com';
+  try {
+    const before = Date.now();
+    let serverTime;
+    try {
+      serverTime = await queryNtpTime(ntpServer);
+    } catch (err) {
+      console.error('NTP sync failed:', err);
+      serverTime = await queryWorldTime();
+    }
+    const after = Date.now();
+    const networkDelay = (after - before) / 2;
+    const clientTime = before + networkDelay;
+    const offset = serverTime - clientTime;
+    serverClockState.ntpOffset = offset;
+    serverClockState.lastUpdateTime = Date.now() + offset;
+    broadcast({ type: 'status', ...serverClockState });
+  } catch (err) {
+    console.error('Scheduled time sync failed:', err);
+  }
+}
+
+function startNtpSync() {
+  if (ntpSyncTimer) {
+    clearInterval(ntpSyncTimer);
+  }
+  if (!serverClockState.ntpSyncEnabled) return;
+  performNtpSync();
+  ntpSyncTimer = setInterval(performNtpSync, serverClockState.ntpSyncInterval);
+}
+
+function stopNtpSync() {
+  if (ntpSyncTimer) {
+    clearInterval(ntpSyncTimer);
+    ntpSyncTimer = null;
+  }
 }
 
 function startServerTimer() {
@@ -301,6 +343,11 @@ wss.on('connection', ws => {
         }
         if (typeof data.ntpSyncEnabled === 'boolean') {
           serverClockState.ntpSyncEnabled = data.ntpSyncEnabled;
+          if (serverClockState.ntpSyncEnabled) {
+            startNtpSync();
+          } else {
+            stopNtpSync();
+          }
         }
         if (data.url) {
           const info = connectedClients.get(ws);
@@ -535,27 +582,21 @@ app.post('/api/set-ntp-sync', (req, res) => {
   if (typeof driftThreshold === 'number') {
     serverClockState.ntpDriftThreshold = driftThreshold;
   }
+  if (serverClockState.ntpSyncEnabled) {
+    startNtpSync();
+  } else {
+    stopNtpSync();
+  }
   res.json({ success: true });
 });
 
 app.get('/api/ntp-sync', async (req, res) => {
-  const ntpServer = req.query.server || 'time.google.com';
+  if (req.query.server) {
+    process.env.NTP_SERVER = String(req.query.server);
+  }
   try {
-    const before = Date.now();
-    let serverTime;
-    try {
-      serverTime = await queryNtpTime(ntpServer);
-    } catch (err) {
-      console.error('NTP sync failed:', err);
-      serverTime = await queryWorldTime();
-    }
-    const after = Date.now();
-    const networkDelay = (after - before) / 2;
-    const clientTime = before + networkDelay;
-    const offset = serverTime - clientTime;
-    serverClockState.ntpOffset = offset;
-    serverClockState.lastUpdateTime = Date.now() + offset;
-    res.json({ offset, lastSync: new Date().toISOString() });
+    await performNtpSync();
+    res.json({ offset: serverClockState.ntpOffset, lastSync: new Date().toISOString() });
   } catch (err) {
     console.error('Time sync failed:', err);
     res.status(500).json({ error: 'Time sync failed' });
@@ -716,4 +757,8 @@ server.listen(PORT, () => {
   console.log(`API Documentation: http://localhost:${PORT}/api/docs`);
   console.log('Server-side clock initialized and running');
   broadcastClients();
+  if (serverClockState.ntpSyncEnabled) {
+    startNtpSync();
+  }
 });
+

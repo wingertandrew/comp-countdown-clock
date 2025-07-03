@@ -403,6 +403,7 @@ app.post('/api/start', (_req, res) => {
   serverClockState.isPaused = false;
   serverClockState.pauseStartTime = null;
   serverClockState.currentPauseDuration = 0;
+  serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
   broadcast({ action: 'start' });
   res.json({ success: true });
 });
@@ -420,10 +421,12 @@ app.post('/api/pause', (_req, res) => {
     serverClockState.isPaused = false;
     serverClockState.pauseStartTime = null;
     serverClockState.currentPauseDuration = 0;
+    serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
   } else {
     // Pause
     serverClockState.isPaused = true;
     serverClockState.pauseStartTime = Date.now() + serverClockState.ntpOffset;
+    serverClockState.lastUpdateTime = serverClockState.pauseStartTime;
   }
   broadcast({ action: 'pause' });
   res.json({ success: true });
@@ -444,6 +447,7 @@ app.post('/api/reset', (_req, res) => {
   serverClockState.isBetweenRounds = false;
   serverClockState.betweenRoundsMinutes = 0;
   serverClockState.betweenRoundsSeconds = 0;
+  serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
   broadcast({ action: 'reset' });
   res.json({ success: true });
 });
@@ -459,6 +463,7 @@ app.post('/api/reset-time', (_req, res) => {
   serverClockState.pauseStartTime = null;
   serverClockState.totalPausedTime = 0;
   serverClockState.currentPauseDuration = 0;
+  serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
   broadcast({ action: 'reset-time' });
   res.json({ success: true });
 });
@@ -478,6 +483,7 @@ app.post('/api/reset-rounds', (_req, res) => {
   serverClockState.isBetweenRounds = false;
   serverClockState.betweenRoundsMinutes = 0;
   serverClockState.betweenRoundsSeconds = 0;
+  serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
   broadcast({ action: 'reset-rounds' });
   res.json({ success: true });
 });
@@ -498,6 +504,7 @@ app.post('/api/next-round', (_req, res) => {
     serverClockState.isBetweenRounds = false;
     serverClockState.betweenRoundsMinutes = 0;
     serverClockState.betweenRoundsSeconds = 0;
+    serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
   }
   broadcast({ action: 'next-round' });
   res.json({ success: true });
@@ -519,6 +526,7 @@ app.post('/api/previous-round', (_req, res) => {
     serverClockState.isBetweenRounds = false;
     serverClockState.betweenRoundsMinutes = 0;
     serverClockState.betweenRoundsSeconds = 0;
+    serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
   }
   broadcast({ action: 'previous-round' });
   res.json({ success: true });

@@ -11,6 +11,7 @@ interface ClockData {
   isBetweenRounds: boolean;
   betweenRoundsMinutes: number;
   betweenRoundsSeconds: number;
+  ntpOffset?: number;
 }
 
 const ClockArena = () => {
@@ -23,7 +24,8 @@ const ClockArena = () => {
     isPaused: false,
     isBetweenRounds: false,
     betweenRoundsMinutes: 0,
-    betweenRoundsSeconds: 0
+    betweenRoundsSeconds: 0,
+    ntpOffset: 0
   });
 
   useEffect(() => {

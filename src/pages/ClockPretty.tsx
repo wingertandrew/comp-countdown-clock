@@ -15,6 +15,7 @@ interface ClockData {
   isBetweenRounds: boolean;
   betweenRoundsMinutes: number;
   betweenRoundsSeconds: number;
+  ntpOffset?: number;
 }
 
 const ClockPretty = () => {
@@ -31,7 +32,8 @@ const ClockPretty = () => {
     currentPauseDuration: 0,
     isBetweenRounds: false,
     betweenRoundsMinutes: 0,
-    betweenRoundsSeconds: 0
+    betweenRoundsSeconds: 0,
+    ntpOffset: 0
   });
 
   useEffect(() => {

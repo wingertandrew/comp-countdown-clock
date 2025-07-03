@@ -128,6 +128,9 @@ export const reducer = (state: State, action: Action): State => {
 
 const listeners: Array<(state: State) => void> = []
 
+// Export listeners for testing to verify effect registration.
+export const _listeners = listeners
+
 let memoryState: State = { toasts: [] }
 
 function dispatch(action: Action) {
@@ -179,7 +182,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [])
 
   return {
     ...state,

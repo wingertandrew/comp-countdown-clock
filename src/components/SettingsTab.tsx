@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -150,7 +151,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </CardContent>
           </Card>
 
-          {/* NTP Sync Settings */}
+          {/* NTP Sync Settings - Always Expanded */}
           <Card className="bg-gray-700 border-gray-500">
             <CardHeader>
               <CardTitle className="text-2xl text-white flex items-center gap-3">
@@ -173,7 +174,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 />
               </div>
               
-              {ntpSyncEnabled && (
+              {/* Always show NTP configuration - grayed out when disabled */}
+              <div className={`space-y-6 ${!ntpSyncEnabled ? 'opacity-50' : ''}`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col items-center space-y-4">
                     <label className="block text-xl font-medium text-white">
@@ -185,20 +187,23 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                       max="300"
                       value={ntpSyncInterval / 1000}
                       onChange={(e) => setNtpSyncInterval((parseInt(e.target.value) || 30) * 1000)}
-                      className="h-16 bg-gray-700 border-gray-500 text-center text-white text-2xl font-bold rounded-xl max-w-xs"
+                      disabled={!ntpSyncEnabled}
+                      className="h-16 bg-gray-700 border-gray-500 text-center text-white text-2xl font-bold rounded-xl max-w-xs disabled:opacity-50"
                     />
                     <div className="flex gap-3">
                       <Button
                         onClick={() => setNtpSyncInterval(Math.max(10000, ntpSyncInterval - 10000))}
                         size="sm"
-                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg"
+                        disabled={!ntpSyncEnabled}
+                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg disabled:opacity-50"
                       >
                         <Minus className="w-5 h-5" />
                       </Button>
                       <Button
                         onClick={() => setNtpSyncInterval(Math.min(300000, ntpSyncInterval + 10000))}
                         size="sm"
-                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg"
+                        disabled={!ntpSyncEnabled}
+                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg disabled:opacity-50"
                       >
                         <Plus className="w-5 h-5" />
                       </Button>
@@ -215,29 +220,30 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                       max="1000"
                       value={ntpDriftThreshold}
                       onChange={(e) => setNtpDriftThreshold(parseInt(e.target.value) || 50)}
-                      className="h-16 bg-gray-700 border-gray-500 text-center text-white text-2xl font-bold rounded-xl max-w-xs"
+                      disabled={!ntpSyncEnabled}
+                      className="h-16 bg-gray-700 border-gray-500 text-center text-white text-2xl font-bold rounded-xl max-w-xs disabled:opacity-50"
                     />
                     <div className="flex gap-3">
                       <Button
                         onClick={() => setNtpDriftThreshold(Math.max(10, ntpDriftThreshold - 10))}
                         size="sm"
-                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg"
+                        disabled={!ntpSyncEnabled}
+                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg disabled:opacity-50"
                       >
                         <Minus className="w-5 h-5" />
                       </Button>
                       <Button
                         onClick={() => setNtpDriftThreshold(Math.min(1000, ntpDriftThreshold + 10))}
                         size="sm"
-                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg"
+                        disabled={!ntpSyncEnabled}
+                        className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg disabled:opacity-50"
                       >
                         <Plus className="w-5 h-5" />
                       </Button>
                     </div>
                   </div>
                 </div>
-              )}
 
-              {ntpSyncEnabled && (
                 <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Wifi className="w-6 h-6 text-blue-400" />
@@ -250,7 +256,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     <p>• Fallback to local time if all servers fail</p>
                   </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 

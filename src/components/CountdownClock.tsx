@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Bug, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ClockState, NTPSyncStatus, NTPSyncRecord, SessionReport } from '@/types/clock';
 import { useDebugLog } from '@/hooks/useDebugLog';
 import { useSessionTracking } from '@/hooks/useSessionTracking';
-import { NTPSyncManager, DEFAULT_NTP_CONFIG } from '@/utils/ntpSync';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { useNTPSync } from '@/hooks/useNTPSync';
+import { useClockControls } from '@/hooks/useClockControls';
 
 import ClockDisplay from './ClockDisplay';
 import SettingsTab from './SettingsTab';
@@ -33,7 +36,7 @@ const CountdownClock = () => {
     betweenRoundsEnabled: true,
     betweenRoundsTime: 60,
     ntpSyncEnabled: false,
-    ntpSyncInterval: 21600000, // 6 hours default
+    ntpSyncInterval: 21600000,
     ntpDriftThreshold: 50,
     ntpOffset: 0
   });
@@ -45,7 +48,7 @@ const CountdownClock = () => {
   const [betweenRoundsEnabled, setBetweenRoundsEnabled] = useState(true);
   const [betweenRoundsTime, setBetweenRoundsTime] = useState(60);
   const [ntpSyncEnabled, setNtpSyncEnabled] = useState(false);
-  const [ntpSyncInterval, setNtpSyncInterval] = useState(21600000); // 6 hours default
+  const [ntpSyncInterval, setNtpSyncInterval] = useState(21600000);
   const [ntpDriftThreshold, setNtpDriftThreshold] = useState(50);
   const [ntpSyncStatus, setNtpSyncStatus] = useState<NTPSyncStatus>({
     enabled: false,
@@ -62,189 +65,12 @@ const CountdownClock = () => {
   const [sessionReport, setSessionReport] = useState<SessionReport | null>(null);
 
   const { toast } = useToast();
-  const wsRef = useRef<WebSocket | null>(null);
-  const ntpManagerRef = useRef<NTPSyncManager | null>(null);
-  
   const { addDebugLog, ...debugLogProps } = useDebugLog();
   const { generateReport, resetSession } = useSessionTracking(clockState);
 
   useEffect(() => {
     setIpAddress(window.location.hostname || 'localhost');
   }, []);
-
-  useEffect(() => {
-    const connectWebSocket = () => {
-      try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}`;
-        console.log('Connecting to WebSocket:', wsUrl);
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          console.log('WebSocket connected - syncing with server');
-          addDebugLog('WEBSOCKET', 'Connected to server', { endpoint: wsUrl });
-          
-          ws.send(JSON.stringify({
-            type: 'sync-settings',
-            url: window.location.href,
-            initialTime,
-            totalRounds: inputRounds,
-            betweenRoundsEnabled,
-            betweenRoundsTime,
-            ntpSyncEnabled,
-            ntpSyncInterval,
-            ntpDriftThreshold
-          }));
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            addDebugLog('WEBSOCKET', 'Received from server', data);
-            
-            if (data.type === 'status') {
-              setClockState(prev => ({
-                ...prev,
-                ...data,
-                pauseStartTime: data.pauseStartTime
-              }));
-
-              if (data.ntpTimestamp) {
-                addDebugLog('NTP', 'Timestamp received via WebSocket', {
-                  ntpTimestamp: data.ntpTimestamp,
-                  serverTime: data.serverTime,
-                  localTime: Date.now() + clockState.ntpOffset,
-                  timeDiff: data.ntpTimestamp - (Date.now() + clockState.ntpOffset)
-                });
-              }
-
-              if (typeof data.betweenRoundsEnabled === 'boolean') {
-                setBetweenRoundsEnabled(data.betweenRoundsEnabled);
-              }
-              if (typeof data.betweenRoundsTime === 'number') {
-                setBetweenRoundsTime(data.betweenRoundsTime);
-              }
-              
-              if (data.initialTime) {
-                setInitialTime(data.initialTime);
-              }
-            } else if (data.type === 'clients') {
-              setConnectedClients(data.clients || []);
-              addDebugLog('WEBSOCKET', 'Connected clients updated', { count: data.clients?.length || 0 });
-            } else if (data.type === 'request-hostname') {
-              ws.send(
-                JSON.stringify({
-                  type: 'client-hostname',
-                  hostname: window.location.hostname
-                })
-              );
-            } else {
-              handleExternalCommand(data);
-            }
-          } catch (error) {
-            console.error('Invalid WebSocket message:', error);
-            addDebugLog('WEBSOCKET', 'Invalid message', { error });
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.log('WebSocket connection failed:', error);
-          addDebugLog('WEBSOCKET', 'Connection failed', { error: error.type || 'Connection error' });
-        };
-
-        ws.onclose = () => {
-          console.log('WebSocket connection closed, attempting to reconnect...');
-          addDebugLog('WEBSOCKET', 'Connection closed, reconnecting');
-          setTimeout(connectWebSocket, 2000);
-        };
-
-        return () => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.close();
-          }
-        };
-      } catch (error) {
-        console.log('WebSocket not available:', error);
-        addDebugLog('WEBSOCKET', 'Not available', { error: error instanceof Error ? error.message : String(error) });
-      }
-    };
-
-    connectWebSocket();
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (ntpSyncEnabled) {
-      const config = {
-        ...DEFAULT_NTP_CONFIG,
-        syncInterval: ntpSyncInterval,
-        driftThreshold: ntpDriftThreshold
-      };
-      
-      ntpManagerRef.current = new NTPSyncManager(config);
-      ntpManagerRef.current.setCallbacks(
-        (data) => {
-          const syncRecord: NTPSyncRecord = {
-            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: data.timestamp,
-            server: data.server,
-            offset: data.offset,
-            success: true
-          };
-          
-          setNtpSyncHistory(prev => [...prev, syncRecord]);
-          setNtpSyncStatus(prev => ({
-            ...prev,
-            lastSync: data.timestamp,
-            timeOffset: data.offset,
-            healthy: true,
-            syncCount: prev.syncCount + 1
-          }));
-          addDebugLog('NTP', 'Time synchronized', {
-            server: data.server,
-            offset: data.offset,
-            timestamp: data.timestamp
-          });
-        },
-        (error: any) => {
-          const syncRecord: NTPSyncRecord = {
-            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: Date.now(),
-            server: 'unknown',
-            offset: 0,
-            success: false,
-            error: error && typeof error === 'object' && 'message' in error ? error.message : String(error)
-          };
-          
-          setNtpSyncHistory(prev => [...prev, syncRecord]);
-          setNtpSyncStatus(prev => ({
-            ...prev,
-            healthy: false,
-            errorCount: prev.errorCount + 1
-          }));
-          addDebugLog('NTP', 'Sync error', { error: String(error) });
-        }
-      );
-      
-      ntpManagerRef.current.startSync();
-      setNtpSyncStatus(prev => ({ ...prev, enabled: true }));
-      
-      return () => {
-        if (ntpManagerRef.current) {
-          ntpManagerRef.current.stopSync();
-          ntpManagerRef.current = null;
-        }
-        setNtpSyncStatus(prev => ({ ...prev, enabled: false }));
-      };
-    } else {
-      if (ntpManagerRef.current) {
-        ntpManagerRef.current.stopSync();
-        ntpManagerRef.current = null;
-      }
-      setNtpSyncStatus(prev => ({ ...prev, enabled: false }));
-    }
-  }, [ntpSyncEnabled, ntpSyncInterval, ntpDriftThreshold]);
 
   const handleExternalCommand = (command: any) => {
     addDebugLog('API', 'External command received', command);
@@ -286,166 +112,47 @@ const CountdownClock = () => {
     }
   };
 
-  const startTimer = async () => {
-    try {
-      const response = await fetch('/api/start', { method: 'POST' });
-      if (response.ok) {
-        addDebugLog('UI', 'Timer started via API');
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to start timer', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
+  useWebSocket({
+    clockState,
+    initialTime,
+    inputRounds,
+    betweenRoundsEnabled,
+    betweenRoundsTime,
+    ntpSyncEnabled,
+    ntpSyncInterval,
+    ntpDriftThreshold,
+    setClockState,
+    setBetweenRoundsEnabled,
+    setBetweenRoundsTime,
+    setInitialTime,
+    setConnectedClients,
+    onExternalCommand: handleExternalCommand
+  });
 
-  const pauseTimer = async () => {
-    try {
-      const response = await fetch('/api/pause', { method: 'POST' });
-      if (response.ok) {
-        addDebugLog('UI', 'Timer paused/resumed via API');
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to pause/resume timer', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
+  useNTPSync({
+    ntpSyncEnabled,
+    ntpSyncInterval,
+    ntpDriftThreshold,
+    setNtpSyncStatus,
+    setNtpSyncHistory
+  });
 
-  const togglePlayPause = () => {
-    if (!clockState.isRunning || clockState.isPaused) {
-      startTimer();
-    } else {
-      pauseTimer();
-    }
-  };
-
-  const resetTime = async () => {
-    try {
-      const response = await fetch('/api/reset-time', { method: 'POST' });
-      if (response.ok) {
-        addDebugLog('UI', 'Time reset via API');
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to reset time', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
-
-  const resetRounds = async () => {
-    try {
-      const response = await fetch('/api/reset-rounds', { method: 'POST' });
-      if (response.ok) {
-        addDebugLog('UI', 'Rounds reset via API');
-        resetSession();
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to reset rounds', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
-
-  const nextRound = async () => {
-    if (clockState.currentRound < clockState.totalRounds) {
-      try {
-        const response = await fetch('/api/next-round', { method: 'POST' });
-        if (response.ok) {
-          addDebugLog('UI', 'Next round via API', {
-            round: clockState.currentRound + 1
-          });
-        }
-      } catch (error) {
-        addDebugLog('UI', 'Failed to advance round', { error: error instanceof Error ? error.message : String(error) });
-      }
-
-      const newRound = clockState.currentRound + 1;
-      setClockState(prev => ({
-        ...prev,
-        currentRound: newRound,
-        minutes: initialTime.minutes,
-        seconds: initialTime.seconds,
-        isRunning: false,
-        isPaused: false,
-        elapsedMinutes: 0,
-        elapsedSeconds: 0,
-        isBetweenRounds: false
-      }));
-    }
-  };
-
-  const previousRound = () => {
-    if (clockState.currentRound > 1) {
-      const newRound = clockState.currentRound - 1;
-      setClockState(prev => ({
-        ...prev,
-        currentRound: newRound,
-        minutes: initialTime.minutes,
-        seconds: initialTime.seconds,
-        isRunning: false,
-        isPaused: false,
-        elapsedMinutes: 0,
-        elapsedSeconds: 0,
-        isBetweenRounds: false
-      }));
-      addDebugLog('UI', 'Previous round', { round: newRound });
-    }
-  };
-
-  const adjustTimeBySeconds = async (secondsToAdd: number) => {
-    if (clockState.isRunning && !clockState.isPaused) return;
-    if (clockState.isBetweenRounds) return;
-    
-    try {
-      const response = await fetch('/api/adjust-time', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seconds: secondsToAdd })
-      });
-      
-      if (response.ok) {
-        addDebugLog('UI', 'Time adjusted via API', { adjustment: secondsToAdd });
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to adjust time', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
-
-  const setTime = async (minutes: number, seconds: number) => {
-    const validMinutes = Math.max(0, Math.min(59, minutes));
-    const validSeconds = Math.max(0, Math.min(59, seconds));
-    
-    try {
-      const response = await fetch('/api/set-time', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minutes: validMinutes, seconds: validSeconds })
-      });
-      
-      if (response.ok) {
-        setInitialTime({ minutes: validMinutes, seconds: validSeconds });
-        setClockState(prev => ({
-          ...prev,
-          minutes: validMinutes,
-          seconds: validSeconds
-        }));
-        addDebugLog('UI', 'Time set via API', { minutes: validMinutes, seconds: validSeconds });
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to set time', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
-
-  const setRounds = async (rounds: number) => {
-    const validRounds = Math.max(1, Math.min(15, rounds));
-    
-    try {
-      const response = await fetch('/api/set-rounds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rounds: validRounds })
-      });
-      
-      if (response.ok) {
-        addDebugLog('UI', 'Rounds set via API', { rounds: validRounds });
-      }
-    } catch (error) {
-      addDebugLog('UI', 'Failed to set rounds', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
+  const {
+    togglePlayPause,
+    resetTime,
+    resetRounds,
+    nextRound,
+    previousRound,
+    adjustTimeBySeconds,
+    setTime,
+    setRounds
+  } = useClockControls({
+    clockState,
+    initialTime,
+    setClockState,
+    setInitialTime,
+    resetSession
+  });
 
   const applySettings = async () => {
     addDebugLog('UI', 'Settings applied', { 
@@ -495,7 +202,6 @@ const CountdownClock = () => {
   const handleExportReport = (format: 'pdf' | 'csv' | 'png') => {
     if (!sessionReport) return;
     
-    // Implement export functionality here
     toast({ title: `Report exported as ${format.toUpperCase()}`, description: `Session ${sessionReport.sessionId}` });
     addDebugLog('UI', 'Report exported', { format, sessionId: sessionReport.sessionId });
   };
@@ -528,7 +234,6 @@ const CountdownClock = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Show FloatingClock bar on non-clock tabs */}
         {activeTab !== 'clock' && (
           <FloatingClock 
             clockState={clockState} 

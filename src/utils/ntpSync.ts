@@ -211,7 +211,7 @@ export const DEFAULT_NTP_CONFIG: NTPSyncConfig = {
     '1.pool.ntp.org',
     '2.pool.ntp.org'
   ],
-  syncInterval: 30000, // 30 seconds
+  syncInterval: 21600000, // 6 hours (6 * 60 * 60 * 1000)
   driftThreshold: 50, // 50ms
   maxRetries: 3
 };

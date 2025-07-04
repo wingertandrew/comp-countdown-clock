@@ -179,20 +179,20 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col items-center space-y-4">
                     <label className="block text-xl font-medium text-white">
-                      Sync Interval (seconds)
+                      Sync Interval (hours)
                     </label>
                     <Input
                       type="number"
-                      min="10"
-                      max="300"
-                      value={ntpSyncInterval / 1000}
-                      onChange={(e) => setNtpSyncInterval((parseInt(e.target.value) || 30) * 1000)}
+                      min="1"
+                      max="24"
+                      value={ntpSyncInterval / 3600000}
+                      onChange={(e) => setNtpSyncInterval((parseInt(e.target.value) || 6) * 3600000)}
                       disabled={!ntpSyncEnabled}
                       className="h-16 bg-gray-700 border-gray-500 text-center text-white text-2xl font-bold rounded-xl max-w-xs disabled:opacity-50"
                     />
                     <div className="flex gap-3">
                       <Button
-                        onClick={() => setNtpSyncInterval(Math.max(10000, ntpSyncInterval - 10000))}
+                        onClick={() => setNtpSyncInterval(Math.max(3600000, ntpSyncInterval - 3600000))}
                         size="sm"
                         disabled={!ntpSyncEnabled}
                         className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg disabled:opacity-50"
@@ -200,7 +200,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                         <Minus className="w-5 h-5" />
                       </Button>
                       <Button
-                        onClick={() => setNtpSyncInterval(Math.min(300000, ntpSyncInterval + 10000))}
+                        onClick={() => setNtpSyncInterval(Math.min(86400000, ntpSyncInterval + 3600000))}
                         size="sm"
                         disabled={!ntpSyncEnabled}
                         className="h-12 w-12 bg-gray-400 hover:bg-gray-300 text-black rounded-lg disabled:opacity-50"

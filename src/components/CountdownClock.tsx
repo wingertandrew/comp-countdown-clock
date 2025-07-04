@@ -31,7 +31,7 @@ const CountdownClock = () => {
     betweenRoundsEnabled: true,
     betweenRoundsTime: 60,
     ntpSyncEnabled: false,
-    ntpSyncInterval: 30000,
+    ntpSyncInterval: 21600000, // 6 hours default
     ntpDriftThreshold: 50,
     ntpOffset: 0
   });
@@ -43,7 +43,7 @@ const CountdownClock = () => {
   const [betweenRoundsEnabled, setBetweenRoundsEnabled] = useState(true);
   const [betweenRoundsTime, setBetweenRoundsTime] = useState(60);
   const [ntpSyncEnabled, setNtpSyncEnabled] = useState(false);
-  const [ntpSyncInterval, setNtpSyncInterval] = useState(30000);
+  const [ntpSyncInterval, setNtpSyncInterval] = useState(21600000); // 6 hours default
   const [ntpDriftThreshold, setNtpDriftThreshold] = useState(50);
   const [ntpSyncStatus, setNtpSyncStatus] = useState<NTPSyncStatus>({
     enabled: false,
@@ -478,7 +478,7 @@ const CountdownClock = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4 bg-gray-800 border-gray-700">
+        <TabsList className="grid w-full grid-cols-4 mb-0 bg-gray-800 border-gray-700">
           <TabsTrigger value="clock" className="text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
           <TabsTrigger value="settings" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Settings className="w-5 h-5 mr-2" />
@@ -494,7 +494,7 @@ const CountdownClock = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Show FloatingClock on non-clock tabs */}
+        {/* Show FloatingClock bar on non-clock tabs */}
         {activeTab !== 'clock' && (
           <FloatingClock 
             clockState={clockState} 

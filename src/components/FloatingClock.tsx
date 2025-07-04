@@ -22,47 +22,50 @@ const FloatingClock: React.FC<FloatingClockProps> = ({ clockState, ntpSyncStatus
     : formatTime(clockState.minutes, clockState.seconds);
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="sticky top-0 z-40 w-full">
       <div 
-        className="bg-black rounded-lg p-3 border-2 shadow-lg min-w-[200px]"
-        style={{ borderColor: statusColor }}
+        className="bg-black border-b-2 px-4 py-2 shadow-lg"
+        style={{ borderBottomColor: statusColor }}
       >
-        {/* Timer Display */}
-        <div className="text-center mb-2">
-          <div className="text-2xl font-bold font-mono text-white">
-            {displayTime}
+        <div className="flex items-center justify-between max-w-full">
+          {/* Timer Display */}
+          <div className="flex items-center space-x-4">
+            <div className="text-xl font-bold font-mono text-white">
+              {displayTime}
+            </div>
+            
+            {/* Status */}
+            <div 
+              className="rounded px-3 py-1 text-xs font-bold text-black"
+              style={{ backgroundColor: statusColor }}
+            >
+              {clockState.isBetweenRounds ? 'BETWEEN ROUNDS' : getStatusText(clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds)}
+            </div>
+          </div>
+
+          {/* Round Info and Details */}
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="text-white font-bold">
+              ROUND {clockState.currentRound} of {clockState.totalRounds}
+            </div>
+            
+            <div className="text-gray-300 text-xs">
+              {clockState.isBetweenRounds 
+                ? `Between: ${displayTime}` 
+                : `Elapsed: ${formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}`
+              }
+            </div>
+
+            {/* NTP Status */}
+            {ntpSyncStatus.enabled && (
+              <div className="text-xs">
+                <span className={ntpSyncStatus.healthy ? 'text-green-400' : 'text-red-400'}>
+                  NTP {ntpSyncStatus.healthy ? 'SYNC' : 'FAIL'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Status Bar */}
-        <div 
-          className="rounded p-2 mb-2 text-center text-sm font-bold text-black"
-          style={{ backgroundColor: statusColor }}
-        >
-          {clockState.isBetweenRounds ? 'BETWEEN ROUNDS' : getStatusText(clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds)}
-        </div>
-
-        {/* Round Info */}
-        <div className="text-center text-white text-sm font-bold mb-1">
-          ROUND {clockState.currentRound} of {clockState.totalRounds}
-        </div>
-
-        {/* Elapsed Time */}
-        <div className="text-center text-gray-300 text-xs">
-          {clockState.isBetweenRounds 
-            ? `Between: ${displayTime}` 
-            : `Elapsed: ${formatTime(clockState.elapsedMinutes, clockState.elapsedSeconds)}`
-          }
-        </div>
-
-        {/* NTP Status */}
-        {ntpSyncStatus.enabled && (
-          <div className="text-center text-xs mt-1">
-            <span className={ntpSyncStatus.healthy ? 'text-green-400' : 'text-red-400'}>
-              NTP {ntpSyncStatus.healthy ? 'SYNC' : 'FAIL'}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

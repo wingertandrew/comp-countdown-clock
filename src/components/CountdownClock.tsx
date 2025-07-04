@@ -68,12 +68,10 @@ const CountdownClock = () => {
   const { addDebugLog, ...debugLogProps } = useDebugLog();
   const { generateReport, resetSession } = useSessionTracking(clockState);
 
-  // Get local IP address for display
   useEffect(() => {
     setIpAddress(window.location.hostname || 'localhost');
   }, []);
 
-  // WebSocket for server communication
   useEffect(() => {
     const connectWebSocket = () => {
       try {
@@ -175,7 +173,6 @@ const CountdownClock = () => {
     connectWebSocket();
   }, []);
 
-  // NTP Sync Management
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (ntpSyncEnabled) {
@@ -210,14 +207,14 @@ const CountdownClock = () => {
             timestamp: data.timestamp
           });
         },
-        (error) => {
+        (error: any) => {
           const syncRecord: NTPSyncRecord = {
             id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             timestamp: Date.now(),
             server: 'unknown',
             offset: 0,
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error && typeof error === 'object' && 'message' in error ? error.message : String(error)
           };
           
           setNtpSyncHistory(prev => [...prev, syncRecord]);
@@ -226,7 +223,7 @@ const CountdownClock = () => {
             healthy: false,
             errorCount: prev.errorCount + 1
           }));
-          addDebugLog('NTP', 'Sync error', { error });
+          addDebugLog('NTP', 'Sync error', { error: String(error) });
         }
       );
       

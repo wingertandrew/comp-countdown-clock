@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Clock, Play, Pause, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Download, Clock, Play, Pause, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { SessionReport, RoundSummary } from '@/types/clock';
 import { formatDuration } from '@/utils/clockUtils';
 
@@ -19,6 +18,14 @@ const ClockReportTab: React.FC<ClockReportTabProps> = ({
   onExportReport
 }) => {
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
+
+  // Update timestamp when report changes
+  useEffect(() => {
+    if (sessionReport) {
+      setLastUpdateTime(Date.now());
+    }
+  }, [sessionReport]);
 
   const getValidationIcon = (status: string) => {
     switch (status) {
@@ -83,6 +90,12 @@ const ClockReportTab: React.FC<ClockReportTabProps> = ({
           <CardTitle className="text-4xl text-white mb-4 flex items-center gap-3">
             <FileText className="w-10 h-10" />
             Clock Report Card
+            {sessionReport && (
+              <Badge className="ml-4 bg-green-600 text-white flex items-center gap-1">
+                <RefreshCw className="w-3 h-3" />
+                Live
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -90,7 +103,7 @@ const ClockReportTab: React.FC<ClockReportTabProps> = ({
             <div className="text-center py-12">
               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-2xl text-white mb-2">No Session Data</h3>
-              <p className="text-gray-400 mb-6">Generate a report to see session analytics</p>
+              <p className="text-gray-400 mb-6">Start a timer session to see real-time analytics</p>
               <Button
                 onClick={onGenerateReport}
                 size="lg"
@@ -102,6 +115,15 @@ const ClockReportTab: React.FC<ClockReportTabProps> = ({
             </div>
           ) : (
             <>
+              {/* Real-time indicator */}
+              <div className="flex justify-between items-center text-sm text-gray-400">
+                <span>Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}</span>
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  Real-time updates
+                </span>
+              </div>
+
               {/* Session Summary */}
               <Card className="bg-gray-700 border-gray-500">
                 <CardHeader>
@@ -251,8 +273,8 @@ const ClockReportTab: React.FC<ClockReportTabProps> = ({
                       variant="outline"
                       className="border-gray-500 text-white hover:bg-gray-600"
                     >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Refresh Report
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Manual Refresh
                     </Button>
                   </div>
                 </CardContent>

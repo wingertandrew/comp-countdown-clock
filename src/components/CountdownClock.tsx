@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Bug, FileText } from 'lucide-react';
@@ -66,7 +65,7 @@ const CountdownClock = () => {
 
   const { toast } = useToast();
   const { addDebugLog, ...debugLogProps } = useDebugLog();
-  const { generateReport, resetSession } = useSessionTracking(clockState);
+  const { generateReport, resetSession, currentReport } = useSessionTracking(clockState);
 
   useEffect(() => {
     setIpAddress(window.location.hostname || 'localhost');
@@ -200,10 +199,11 @@ const CountdownClock = () => {
   };
 
   const handleExportReport = (format: 'pdf' | 'csv' | 'png') => {
-    if (!sessionReport) return;
+    const reportToExport = currentReport || sessionReport;
+    if (!reportToExport) return;
     
-    toast({ title: `Report exported as ${format.toUpperCase()}`, description: `Session ${sessionReport.sessionId}` });
-    addDebugLog('UI', 'Report exported', { format, sessionId: sessionReport.sessionId });
+    toast({ title: `Report exported as ${format.toUpperCase()}`, description: `Session ${reportToExport.sessionId}` });
+    addDebugLog('UI', 'Report exported', { format, sessionId: reportToExport.sessionId });
   };
 
   const handleCommandCopy = (command: string) => {
@@ -282,7 +282,7 @@ const CountdownClock = () => {
 
         <TabsContent value="report">
           <ClockReportTab
-            sessionReport={sessionReport}
+            sessionReport={currentReport || sessionReport}
             onGenerateReport={handleGenerateReport}
             onExportReport={handleExportReport}
           />

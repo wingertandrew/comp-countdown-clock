@@ -5,6 +5,7 @@ import { SessionEvent, RoundSummary, SessionReport, ClockState } from '@/types/c
 export const useSessionTracking = (clockState: ClockState) => {
   const [sessionEvents, setSessionEvents] = useState<SessionEvent[]>([]);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [currentReport, setCurrentReport] = useState<SessionReport | null>(null);
   const sessionIdRef = useRef<string>('');
   const lastStateRef = useRef<ClockState | null>(null);
 
@@ -24,52 +25,6 @@ export const useSessionTracking = (clockState: ClockState) => {
     };
     setSessionEvents(prev => [...prev, event]);
   }, [clockState.currentRound]);
-
-  // Track state changes
-  useEffect(() => {
-    const lastState = lastStateRef.current;
-    if (lastState) {
-      // Detect state changes
-      if (!lastState.isRunning && clockState.isRunning && !clockState.isPaused) {
-        if (!sessionStartTime) {
-          setSessionStartTime(Date.now());
-          sessionIdRef.current = generateSessionId();
-        }
-        addEvent('start');
-      }
-      
-      if (lastState.isRunning && !lastState.isPaused && clockState.isPaused) {
-        addEvent('pause');
-      }
-      
-      if (lastState.isPaused && !clockState.isPaused && clockState.isRunning) {
-        addEvent('resume');
-      }
-      
-      if (lastState.currentRound !== clockState.currentRound) {
-        addEvent('round_end', { previousRound: lastState.currentRound });
-        addEvent('round_start', { newRound: clockState.currentRound });
-      }
-      
-      if (!lastState.isBetweenRounds && clockState.isBetweenRounds) {
-        addEvent('between_rounds_start');
-      }
-      
-      if (lastState.isBetweenRounds && !clockState.isBetweenRounds) {
-        addEvent('between_rounds_end');
-      }
-    }
-    
-    lastStateRef.current = clockState;
-  }, [clockState, sessionStartTime, generateSessionId, addEvent]);
-
-  // Reset session
-  const resetSession = useCallback(() => {
-    setSessionEvents([]);
-    setSessionStartTime(null);
-    sessionIdRef.current = '';
-    addEvent('reset');
-  }, [addEvent]);
 
   // Generate report
   const generateReport = useCallback((): SessionReport => {
@@ -161,10 +116,66 @@ export const useSessionTracking = (clockState: ClockState) => {
     };
   }, [clockState, sessionEvents, sessionStartTime]);
 
+  // Real-time report generation
+  useEffect(() => {
+    if (sessionStartTime && sessionEvents.length > 0) {
+      const report = generateReport();
+      setCurrentReport(report);
+    }
+  }, [sessionEvents, clockState, generateReport, sessionStartTime]);
+
+  // Track state changes
+  useEffect(() => {
+    const lastState = lastStateRef.current;
+    if (lastState) {
+      // Detect state changes
+      if (!lastState.isRunning && clockState.isRunning && !clockState.isPaused) {
+        if (!sessionStartTime) {
+          setSessionStartTime(Date.now());
+          sessionIdRef.current = generateSessionId();
+        }
+        addEvent('start');
+      }
+      
+      if (lastState.isRunning && !lastState.isPaused && clockState.isPaused) {
+        addEvent('pause');
+      }
+      
+      if (lastState.isPaused && !clockState.isPaused && clockState.isRunning) {
+        addEvent('resume');
+      }
+      
+      if (lastState.currentRound !== clockState.currentRound) {
+        addEvent('round_end', { previousRound: lastState.currentRound });
+        addEvent('round_start', { newRound: clockState.currentRound });
+      }
+      
+      if (!lastState.isBetweenRounds && clockState.isBetweenRounds) {
+        addEvent('between_rounds_start');
+      }
+      
+      if (lastState.isBetweenRounds && !clockState.isBetweenRounds) {
+        addEvent('between_rounds_end');
+      }
+    }
+    
+    lastStateRef.current = clockState;
+  }, [clockState, sessionStartTime, generateSessionId, addEvent]);
+
+  // Reset session
+  const resetSession = useCallback(() => {
+    setSessionEvents([]);
+    setSessionStartTime(null);
+    setCurrentReport(null);
+    sessionIdRef.current = '';
+    addEvent('reset');
+  }, [addEvent]);
+
   return {
     sessionEvents,
     sessionStartTime,
     sessionId: sessionIdRef.current,
+    currentReport,
     resetSession,
     generateReport
   };

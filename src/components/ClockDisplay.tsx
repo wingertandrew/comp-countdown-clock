@@ -118,31 +118,11 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           </div>
         </div>
 
-        {/* IP Address and NTP Status */}
+        {/* IP Address only */}
         <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white text-sm sm:text-lg md:text-xl">
-              <div className="w-2 sm:w-3 md:w-4 h-2 sm:h-3 md:h-4 bg-white rounded-full"></div>
-              <span>{ipAddress}</span>
-            </div>
-            
-            {ntpSyncStatus.enabled && (
-              <div className="flex items-center gap-2 text-sm sm:text-base md:text-lg">
-                {ntpSyncStatus.healthy ? (
-                  <Wifi className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-green-400" />
-                ) : (
-                  <WifiOff className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-red-400" />
-                )}
-                <span className={ntpSyncStatus.healthy ? 'text-green-400' : 'text-red-400'}>
-                  NTP {ntpSyncStatus.healthy ? 'SYNC' : 'FAIL'}
-                </span>
-                {ntpSyncStatus.timeOffset !== 0 && (
-                  <span className="text-yellow-400 text-xs sm:text-sm">
-                    {ntpSyncStatus.timeOffset > 0 ? '+' : ''}{ntpSyncStatus.timeOffset}ms
-                  </span>
-                )}
-              </div>
-            )}
+          <div className="flex items-center gap-2 text-white text-sm sm:text-lg md:text-xl">
+            <div className="w-2 sm:w-3 md:w-4 h-2 sm:h-3 md:h-4 bg-white rounded-full"></div>
+            <span>{ipAddress}</span>
           </div>
         </div>
 
@@ -226,9 +206,9 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           </HoldButton>
         </div>
 
-        {/* Stats - Left side */}
+        {/* Stats - Left side - Removed NTP sync stats */}
         <div className="flex items-start text-white">
-          {/* Left side - Total Paused and Between Rounds info */}
+          {/* Left side - Total Paused and Between Rounds info only */}
           <div className="flex flex-col gap-1">
             {clockState.totalPausedTime > 0 && (
               <div className="text-yellow-400 text-lg sm:text-xl md:text-2xl">
@@ -238,11 +218,6 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
             {betweenRoundsEnabled && (
               <div className="text-purple-400 text-lg sm:text-xl md:text-2xl">
                 Between Rounds Timer: {betweenRoundsTime}s
-              </div>
-            )}
-            {ntpSyncStatus.enabled && ntpSyncStatus.syncCount > 0 && (
-              <div className="text-blue-400 text-lg sm:text-xl md:text-2xl">
-                NTP Syncs: {ntpSyncStatus.syncCount} | Errors: {ntpSyncStatus.errorCount}
               </div>
             )}
           </div>

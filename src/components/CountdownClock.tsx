@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ClockState, NTPSyncStatus } from '@/types/clock';
+import { ClockState, NTPSyncStatus, NTPSyncEvent } from '@/types/clock';
 import { useDebugLog } from '@/hooks/useDebugLog';
 import { NTPSyncManager, DEFAULT_NTP_CONFIG } from '@/utils/ntpSync';
 
@@ -51,7 +51,8 @@ const CountdownClock = () => {
     timeOffset: 0,
     healthy: false,
     syncCount: 0,
-    errorCount: 0
+    errorCount: 0,
+    syncHistory: []
   });
   const [activeTab, setActiveTab] = useState('clock');
   const [ipAddress, setIpAddress] = useState('');
@@ -188,12 +189,20 @@ const CountdownClock = () => {
       ntpManagerRef.current = new NTPSyncManager(config);
       ntpManagerRef.current.setCallbacks(
         (data) => {
+          const syncEvent: NTPSyncEvent = {
+            timestamp: data.timestamp,
+            server: data.server,
+            offset: data.offset,
+            success: true
+          };
+          
           setNtpSyncStatus(prev => ({
             ...prev,
             lastSync: data.timestamp,
             timeOffset: data.offset,
             healthy: true,
-            syncCount: prev.syncCount + 1
+            syncCount: prev.syncCount + 1,
+            syncHistory: [...prev.syncHistory, syncEvent].slice(-10) // Keep last 10 syncs
           }));
           addDebugLog('NTP', 'Time synchronized', {
             server: data.server,
@@ -202,10 +211,19 @@ const CountdownClock = () => {
           });
         },
         (error) => {
+          const syncEvent: NTPSyncEvent = {
+            timestamp: Date.now(),
+            server: 'unknown',
+            offset: 0,
+            success: false,
+            error: error
+          };
+          
           setNtpSyncStatus(prev => ({
             ...prev,
             healthy: false,
-            errorCount: prev.errorCount + 1
+            errorCount: prev.errorCount + 1,
+            syncHistory: [...prev.syncHistory, syncEvent].slice(-10) // Keep last 10 syncs
           }));
           addDebugLog('NTP', 'Sync error', { error });
         }
@@ -528,6 +546,7 @@ const CountdownClock = () => {
             ntpSyncEnabled={ntpSyncEnabled}
             ntpSyncInterval={ntpSyncInterval}
             ntpDriftThreshold={ntpDriftThreshold}
+            ntpSyncStatus={ntpSyncStatus}
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}

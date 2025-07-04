@@ -1,3 +1,4 @@
+
 export interface ClockState {
   minutes: number;
   seconds: number;
@@ -33,6 +34,14 @@ export interface DebugLogEntry {
 
 export type DebugFilter = 'ALL' | 'UI' | 'API' | 'WEBSOCKET' | 'NTP';
 
+export interface NTPSyncEvent {
+  timestamp: number;
+  server: string;
+  offset: number;
+  success: boolean;
+  error?: string;
+}
+
 export interface NTPSyncStatus {
   enabled: boolean;
   lastSync: number;
@@ -40,4 +49,34 @@ export interface NTPSyncStatus {
   healthy: boolean;
   syncCount: number;
   errorCount: number;
+  syncHistory: NTPSyncEvent[];
+}
+
+export interface SessionSegment {
+  type: 'run' | 'pause' | 'between-rounds';
+  startTime: number;
+  endTime: number;
+  duration: number;
+  round: number;
+}
+
+export interface RoundStats {
+  round: number;
+  runTime: number;
+  pauseTime: number;
+  betweenTime: number;
+  totalTime: number;
+  segments: SessionSegment[];
+}
+
+export interface SessionReport {
+  sessionId: string;
+  startTime: number;
+  endTime: number;
+  totalExpectedTime: number;
+  totalActualTime: number;
+  totalPauseTime: number;
+  totalBetweenTime: number;
+  roundStats: RoundStats[];
+  anomalies: string[];
 }

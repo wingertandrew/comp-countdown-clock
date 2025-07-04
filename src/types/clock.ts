@@ -1,3 +1,4 @@
+
 export interface ClockState {
   minutes: number;
   seconds: number;
@@ -40,4 +41,48 @@ export interface NTPSyncStatus {
   healthy: boolean;
   syncCount: number;
   errorCount: number;
+}
+
+export interface NTPSyncRecord {
+  id: string;
+  timestamp: number;
+  server: string;
+  offset: number;
+  success: boolean;
+  error?: string;
+}
+
+export interface SessionEvent {
+  id: string;
+  timestamp: number;
+  type: 'start' | 'pause' | 'resume' | 'round_start' | 'round_end' | 'between_rounds_start' | 'between_rounds_end' | 'reset';
+  round: number;
+  data?: any;
+}
+
+export interface RoundSummary {
+  round: number;
+  startTime: number;
+  endTime: number;
+  runTime: number;
+  pauseTime: number;
+  betweenRoundsTime: number;
+  totalTime: number;
+  events: SessionEvent[];
+  anomalies: string[];
+}
+
+export interface SessionReport {
+  sessionId: string;
+  startTime: number;
+  endTime: number;
+  expectedTotalTime: number;
+  actualTotalTime: number;
+  totalRunTime: number;
+  totalPauseTime: number;
+  totalBetweenRoundsTime: number;
+  rounds: RoundSummary[];
+  anomalies: string[];
+  isValid: boolean;
+  validationStatus: 'complete' | 'incomplete' | 'with_anomalies';
 }

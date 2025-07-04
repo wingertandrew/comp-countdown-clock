@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Plus, Minus, Wifi, Server } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Clock, Plus, Minus, Wifi, Server, CheckCircle, XCircle } from 'lucide-react';
+import { NTPSyncRecord } from '@/types/clock';
 
 interface SettingsTabProps {
   inputMinutes: number;
@@ -15,6 +17,7 @@ interface SettingsTabProps {
   ntpSyncEnabled: boolean;
   ntpSyncInterval: number;
   ntpDriftThreshold: number;
+  ntpSyncHistory: NTPSyncRecord[];
   setInputMinutes: (value: number) => void;
   setInputSeconds: (value: number) => void;
   setInputRounds: (value: number) => void;
@@ -35,6 +38,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   ntpSyncEnabled,
   ntpSyncInterval,
   ntpDriftThreshold,
+  ntpSyncHistory,
   setInputMinutes,
   setInputSeconds,
   setInputRounds,
@@ -45,6 +49,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   setNtpDriftThreshold,
   onApplySettings
 }) => {
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
   return (
     <div className="space-y-6 p-4 min-h-screen bg-gray-900">
       <Card className="bg-gray-800 border-gray-600">
@@ -151,7 +159,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </CardContent>
           </Card>
 
-          {/* NTP Sync Settings - Always Expanded */}
+          {/* NTP Sync Settings */}
           <Card className="bg-gray-700 border-gray-500">
             <CardHeader>
               <CardTitle className="text-2xl text-white flex items-center gap-3">
@@ -174,7 +182,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 />
               </div>
               
-              {/* Always show NTP configuration - grayed out when disabled */}
+              {/* NTP Configuration */}
               <div className={`space-y-6 ${!ntpSyncEnabled ? 'opacity-50' : ''}`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col items-center space-y-4">
@@ -243,6 +251,46 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* NTP Sync History */}
+                {ntpSyncHistory.length > 0 && (
+                  <div className="bg-gray-600 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                      <Wifi className="w-5 h-5" />
+                      Recent Sync History (Last 5)
+                    </h4>
+                    <div className="space-y-2">
+                      {ntpSyncHistory.slice(-5).reverse().map((sync) => (
+                        <div key={sync.id} className="flex items-center justify-between bg-gray-700 rounded px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            {sync.success ? (
+                              <CheckCircle className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-400" />
+                            )}
+                            <span className="text-sm text-gray-300">
+                              {formatTimestamp(sync.timestamp)}
+                            </span>
+                            <span className="text-sm text-gray-400">
+                              {sync.server}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {sync.success ? (
+                              <Badge className="bg-green-600 text-white">
+                                {sync.offset > 0 ? '+' : ''}{sync.offset}ms
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-red-600 text-white">
+                                Failed
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">

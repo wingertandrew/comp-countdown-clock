@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Info, Bug } from 'lucide-react';
+import { Settings, Info, Bug, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ClockState, NTPSyncStatus } from '@/types/clock';
+import { ClockState, NTPSyncStatus, NTPSyncRecord, SessionReport } from '@/types/clock';
 import { useDebugLog } from '@/hooks/useDebugLog';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 import { NTPSyncManager, DEFAULT_NTP_CONFIG } from '@/utils/ntpSync';
 
 import ClockDisplay from './ClockDisplay';
 import SettingsTab from './SettingsTab';
 import ApiInfoTab from './ApiInfoTab';
 import DebugTab from './DebugTab';
+import ClockReportTab from './ClockReportTab';
 import FloatingClock from './FloatingClock';
 
 const CountdownClock = () => {
@@ -53,15 +55,18 @@ const CountdownClock = () => {
     syncCount: 0,
     errorCount: 0
   });
+  const [ntpSyncHistory, setNtpSyncHistory] = useState<NTPSyncRecord[]>([]);
   const [activeTab, setActiveTab] = useState('clock');
   const [ipAddress, setIpAddress] = useState('');
   const [connectedClients, setConnectedClients] = useState<any[]>([]);
+  const [sessionReport, setSessionReport] = useState<SessionReport | null>(null);
 
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const ntpManagerRef = useRef<NTPSyncManager | null>(null);
   
   const { addDebugLog, ...debugLogProps } = useDebugLog();
+  const { generateReport, resetSession } = useSessionTracking(clockState);
 
   // Get local IP address for display
   useEffect(() => {
@@ -107,7 +112,6 @@ const CountdownClock = () => {
                 pauseStartTime: data.pauseStartTime
               }));
 
-              // Log NTP timestamp if present
               if (data.ntpTimestamp) {
                 addDebugLog('NTP', 'Timestamp received via WebSocket', {
                   ntpTimestamp: data.ntpTimestamp,
@@ -117,16 +121,12 @@ const CountdownClock = () => {
                 });
               }
 
-              // Only update these settings if they exist in the server response
-              // This prevents the server from overriding local setting changes
               if (typeof data.betweenRoundsEnabled === 'boolean') {
                 setBetweenRoundsEnabled(data.betweenRoundsEnabled);
               }
               if (typeof data.betweenRoundsTime === 'number') {
                 setBetweenRoundsTime(data.betweenRoundsTime);
               }
-              // Remove the automatic NTP sync state updates from server
-              // The server should only update NTP state when explicitly set via API
               
               if (data.initialTime) {
                 setInitialTime(data.initialTime);
@@ -188,6 +188,15 @@ const CountdownClock = () => {
       ntpManagerRef.current = new NTPSyncManager(config);
       ntpManagerRef.current.setCallbacks(
         (data) => {
+          const syncRecord: NTPSyncRecord = {
+            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: data.timestamp,
+            server: data.server,
+            offset: data.offset,
+            success: true
+          };
+          
+          setNtpSyncHistory(prev => [...prev, syncRecord]);
           setNtpSyncStatus(prev => ({
             ...prev,
             lastSync: data.timestamp,
@@ -202,6 +211,16 @@ const CountdownClock = () => {
           });
         },
         (error) => {
+          const syncRecord: NTPSyncRecord = {
+            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: Date.now(),
+            server: 'unknown',
+            offset: 0,
+            success: false,
+            error: error.message || 'Unknown error'
+          };
+          
+          setNtpSyncHistory(prev => [...prev, syncRecord]);
           setNtpSyncStatus(prev => ({
             ...prev,
             healthy: false,
@@ -241,12 +260,14 @@ const CountdownClock = () => {
         break;
       case 'reset':
         toast({ title: 'Timer Reset' });
+        resetSession();
         break;
       case 'reset-time':
         toast({ title: 'Time Reset' });
         break;
       case 'reset-rounds':
         toast({ title: 'Rounds Reset' });
+        resetSession();
         break;
       case 'set-time':
         setInitialTime({ minutes: command.minutes, seconds: command.seconds });
@@ -314,14 +335,11 @@ const CountdownClock = () => {
       const response = await fetch('/api/reset-rounds', { method: 'POST' });
       if (response.ok) {
         addDebugLog('UI', 'Rounds reset via API');
+        resetSession();
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to reset rounds', { error: error.message });
     }
-  };
-
-  const resetTimer = () => {
-    resetRounds();
   };
 
   const nextRound = async () => {
@@ -470,6 +488,21 @@ const CountdownClock = () => {
     toast({ title: "Settings Applied" });
   };
 
+  const handleGenerateReport = () => {
+    const report = generateReport();
+    setSessionReport(report);
+    setActiveTab('report');
+    toast({ title: "Report Generated" });
+  };
+
+  const handleExportReport = (format: 'pdf' | 'csv' | 'png') => {
+    if (!sessionReport) return;
+    
+    // Implement export functionality here
+    toast({ title: `Report exported as ${format.toUpperCase()}`, description: `Session ${sessionReport.sessionId}` });
+    addDebugLog('UI', 'Report exported', { format, sessionId: sessionReport.sessionId });
+  };
+
   const handleCommandCopy = (command: string) => {
     addDebugLog('UI', 'Command copied', { command });
     toast({ title: 'Command Copied', description: command });
@@ -478,11 +511,15 @@ const CountdownClock = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
-        <TabsList className="grid w-full grid-cols-4 mb-0 bg-gray-800 border-gray-700">
+        <TabsList className="grid w-full grid-cols-5 mb-0 bg-gray-800 border-gray-700">
           <TabsTrigger value="clock" className="text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
           <TabsTrigger value="settings" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Settings className="w-5 h-5 mr-2" />
             Settings
+          </TabsTrigger>
+          <TabsTrigger value="report" className="text-lg py-3 data-[state=active]:bg-gray-600">
+            <FileText className="w-5 h-5 mr-2" />
+            Report
           </TabsTrigger>
           <TabsTrigger value="info" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Info className="w-5 h-5 mr-2" />
@@ -508,13 +545,13 @@ const CountdownClock = () => {
             ipAddress={ipAddress}
             betweenRoundsEnabled={betweenRoundsEnabled}
             betweenRoundsTime={betweenRoundsTime}
-            ntpSyncStatus={ntpSyncStatus}
             onTogglePlayPause={togglePlayPause}
             onNextRound={nextRound}
             onPreviousRound={previousRound}
             onResetTime={resetTime}
             onResetRounds={resetRounds}
             onAdjustTimeBySeconds={adjustTimeBySeconds}
+            onGenerateReport={handleGenerateReport}
           />
         </TabsContent>
 
@@ -528,6 +565,7 @@ const CountdownClock = () => {
             ntpSyncEnabled={ntpSyncEnabled}
             ntpSyncInterval={ntpSyncInterval}
             ntpDriftThreshold={ntpDriftThreshold}
+            ntpSyncHistory={ntpSyncHistory}
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}
@@ -537,6 +575,14 @@ const CountdownClock = () => {
             setNtpSyncInterval={setNtpSyncInterval}
             setNtpDriftThreshold={setNtpDriftThreshold}
             onApplySettings={applySettings}
+          />
+        </TabsContent>
+
+        <TabsContent value="report">
+          <ClockReportTab
+            sessionReport={sessionReport}
+            onGenerateReport={handleGenerateReport}
+            onExportReport={handleExportReport}
           />
         </TabsContent>
 

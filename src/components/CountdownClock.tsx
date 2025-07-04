@@ -152,7 +152,7 @@ const CountdownClock = () => {
 
         ws.onerror = (error) => {
           console.log('WebSocket connection failed:', error);
-          addDebugLog('WEBSOCKET', 'Connection failed', { error });
+          addDebugLog('WEBSOCKET', 'Connection failed', { error: error.type || 'Connection error' });
         };
 
         ws.onclose = () => {
@@ -168,7 +168,7 @@ const CountdownClock = () => {
         };
       } catch (error) {
         console.log('WebSocket not available:', error);
-        addDebugLog('WEBSOCKET', 'Not available', { error: error.message });
+        addDebugLog('WEBSOCKET', 'Not available', { error: error instanceof Error ? error.message : String(error) });
       }
     };
 
@@ -217,7 +217,7 @@ const CountdownClock = () => {
             server: 'unknown',
             offset: 0,
             success: false,
-            error: error.message || 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error'
           };
           
           setNtpSyncHistory(prev => [...prev, syncRecord]);
@@ -296,7 +296,7 @@ const CountdownClock = () => {
         addDebugLog('UI', 'Timer started via API');
       }
     } catch (error) {
-      addDebugLog('UI', 'Failed to start timer', { error: error.message });
+      addDebugLog('UI', 'Failed to start timer', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -307,7 +307,7 @@ const CountdownClock = () => {
         addDebugLog('UI', 'Timer paused/resumed via API');
       }
     } catch (error) {
-      addDebugLog('UI', 'Failed to pause/resume timer', { error: error.message });
+      addDebugLog('UI', 'Failed to pause/resume timer', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -326,7 +326,7 @@ const CountdownClock = () => {
         addDebugLog('UI', 'Time reset via API');
       }
     } catch (error) {
-      addDebugLog('UI', 'Failed to reset time', { error: error.message });
+      addDebugLog('UI', 'Failed to reset time', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -338,7 +338,7 @@ const CountdownClock = () => {
         resetSession();
       }
     } catch (error) {
-      addDebugLog('UI', 'Failed to reset rounds', { error: error.message });
+      addDebugLog('UI', 'Failed to reset rounds', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -352,7 +352,7 @@ const CountdownClock = () => {
           });
         }
       } catch (error) {
-        addDebugLog('UI', 'Failed to advance round', { error: error.message });
+        addDebugLog('UI', 'Failed to advance round', { error: error instanceof Error ? error.message : String(error) });
       }
 
       const newRound = clockState.currentRound + 1;
@@ -403,7 +403,7 @@ const CountdownClock = () => {
         addDebugLog('UI', 'Time adjusted via API', { adjustment: secondsToAdd });
       }
     } catch (error) {
-      addDebugLog('UI', 'Failed to adjust time', { error: error.message });
+      addDebugLog('UI', 'Failed to adjust time', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -428,7 +428,7 @@ const CountdownClock = () => {
         addDebugLog('UI', 'Time set via API', { minutes: validMinutes, seconds: validSeconds });
       }
     } catch (error) {
-      addDebugLog('UI', 'Failed to set time', { error: error.message });
+      addDebugLog('UI', 'Failed to set time', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -446,7 +446,7 @@ const CountdownClock = () => {
         addDebugLog('UI', 'Rounds set via API', { rounds: validRounds });
       }
     } catch (error) {
-      addDebugLog('UI', 'Failed to set rounds', { error: error.message });
+      addDebugLog('UI', 'Failed to set rounds', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -481,7 +481,7 @@ const CountdownClock = () => {
         })
       });
     } catch (error) {
-      addDebugLog('UI', 'Failed to sync settings with server', { error: error.message });
+      addDebugLog('UI', 'Failed to sync settings with server', { error: error instanceof Error ? error.message : String(error) });
     }
     
     setActiveTab('clock');

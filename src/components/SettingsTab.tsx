@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Plus, Minus, Wifi, Server, CheckCircle, XCircle } from 'lucide-react';
-import { NTPSyncStatus } from '@/types/clock';
+import { Clock, Plus, Minus, Wifi, Server } from 'lucide-react';
 
 interface SettingsTabProps {
   inputMinutes: number;
@@ -15,7 +15,6 @@ interface SettingsTabProps {
   ntpSyncEnabled: boolean;
   ntpSyncInterval: number;
   ntpDriftThreshold: number;
-  ntpSyncStatus: NTPSyncStatus;
   setInputMinutes: (value: number) => void;
   setInputSeconds: (value: number) => void;
   setInputRounds: (value: number) => void;
@@ -36,7 +35,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   ntpSyncEnabled,
   ntpSyncInterval,
   ntpDriftThreshold,
-  ntpSyncStatus,
   setInputMinutes,
   setInputSeconds,
   setInputRounds,
@@ -47,12 +45,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   setNtpDriftThreshold,
   onApplySettings
 }) => {
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString();
-  };
-
-  const lastFiveSyncs = ntpSyncStatus.syncHistory.slice(-5).reverse();
-
   return (
     <div className="space-y-6 p-4 min-h-screen bg-gray-900">
       <Card className="bg-gray-800 border-gray-600">
@@ -264,68 +256,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     <p>• Fallback to local time if all servers fail</p>
                   </div>
                 </div>
-
-                {/* NTP Sync Status and History */}
-                {ntpSyncStatus.enabled && (
-                  <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-semibold text-white">Sync Status</h4>
-                      <div className="flex items-center gap-2">
-                        {ntpSyncStatus.healthy ? (
-                          <CheckCircle className="w-5 h-5 text-green-400" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-400" />
-                        )}
-                        <span className={ntpSyncStatus.healthy ? 'text-green-400' : 'text-red-400'}>
-                          {ntpSyncStatus.healthy ? 'HEALTHY' : 'UNHEALTHY'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                      <div className="text-gray-300">
-                        <span className="font-medium">Total Syncs:</span> {ntpSyncStatus.syncCount}
-                      </div>
-                      <div className="text-gray-300">
-                        <span className="font-medium">Errors:</span> {ntpSyncStatus.errorCount}
-                      </div>
-                      <div className="text-gray-300">
-                        <span className="font-medium">Current Offset:</span> {ntpSyncStatus.timeOffset}ms
-                      </div>
-                      <div className="text-gray-300">
-                        <span className="font-medium">Last Sync:</span> {ntpSyncStatus.lastSync ? formatTimestamp(ntpSyncStatus.lastSync) : 'Never'}
-                      </div>
-                    </div>
-
-                    {lastFiveSyncs.length > 0 && (
-                      <div>
-                        <h5 className="text-md font-medium text-white mb-2">Last 5 Syncs</h5>
-                        <div className="space-y-2">
-                          {lastFiveSyncs.map((sync, index) => (
-                            <div key={index} className="flex items-center justify-between bg-gray-700 rounded p-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                {sync.success ? (
-                                  <CheckCircle className="w-4 h-4 text-green-400" />
-                                ) : (
-                                  <XCircle className="w-4 h-4 text-red-400" />
-                                )}
-                                <span className="text-gray-300">{formatTimestamp(sync.timestamp)}</span>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-gray-400">{sync.server}</span>
-                                {sync.success ? (
-                                  <span className="text-blue-400">{sync.offset}ms</span>
-                                ) : (
-                                  <span className="text-red-400">{sync.error}</span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

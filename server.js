@@ -266,9 +266,7 @@ function updateServerClock() {
     const elapsedMinutes = Math.floor(totalElapsed / 60);
     const elapsedSeconds = totalElapsed % 60;
 
-    const countdownFinished = newMinutes < 0 || (newMinutes === 0 && adjustedSeconds === 0);
-
-    if (countdownFinished) {
+    if (newMinutes < 0) {
       if (serverClockState.currentRound < serverClockState.totalRounds) {
         if (serverClockState.betweenRoundsEnabled) {
           // Start between rounds timer

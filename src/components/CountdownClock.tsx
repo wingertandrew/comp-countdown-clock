@@ -63,10 +63,12 @@ const CountdownClock = () => {
   
   const { addDebugLog, ...debugLogProps } = useDebugLog();
 
+  // Get local IP address for display
   useEffect(() => {
     setIpAddress(window.location.hostname || 'localhost');
   }, []);
 
+  // WebSocket for server communication
   useEffect(() => {
     const connectWebSocket = () => {
       try {
@@ -105,6 +107,7 @@ const CountdownClock = () => {
                 pauseStartTime: data.pauseStartTime
               }));
 
+              // Log NTP timestamp if present
               if (data.ntpTimestamp) {
                 addDebugLog('NTP', 'Timestamp received via WebSocket', {
                   ntpTimestamp: data.ntpTimestamp,
@@ -114,12 +117,16 @@ const CountdownClock = () => {
                 });
               }
 
+              // Only update these settings if they exist in the server response
+              // This prevents the server from overriding local setting changes
               if (typeof data.betweenRoundsEnabled === 'boolean') {
                 setBetweenRoundsEnabled(data.betweenRoundsEnabled);
               }
               if (typeof data.betweenRoundsTime === 'number') {
                 setBetweenRoundsTime(data.betweenRoundsTime);
               }
+              // Remove the automatic NTP sync state updates from server
+              // The server should only update NTP state when explicitly set via API
               
               if (data.initialTime) {
                 setInitialTime(data.initialTime);
@@ -168,6 +175,7 @@ const CountdownClock = () => {
     connectWebSocket();
   }, []);
 
+  // NTP Sync Management
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (ntpSyncEnabled) {
@@ -424,30 +432,6 @@ const CountdownClock = () => {
     }
   };
 
-  const handleTimeChange = async (minutes: number, seconds: number) => {
-    await setTime(minutes, seconds);
-    // Reset to first round and stop timer when time changes
-    setClockState(prev => ({
-      ...prev,
-      currentRound: 1,
-      isRunning: false,
-      isPaused: false,
-      elapsedMinutes: 0,
-      elapsedSeconds: 0,
-      isBetweenRounds: false
-    }));
-  };
-
-  const handleRoundsChange = async (rounds: number) => {
-    await setRounds(rounds);
-    // Reset to first round when total rounds change
-    setClockState(prev => ({
-      ...prev,
-      currentRound: 1,
-      totalRounds: rounds
-    }));
-  };
-
   const applySettings = async () => {
     addDebugLog('UI', 'Settings applied', { 
       time: { minutes: inputMinutes, seconds: inputSeconds },
@@ -510,6 +494,7 @@ const CountdownClock = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* Show FloatingClock bar on non-clock tabs */}
         {activeTab !== 'clock' && (
           <FloatingClock 
             clockState={clockState} 
@@ -552,8 +537,6 @@ const CountdownClock = () => {
             setNtpSyncInterval={setNtpSyncInterval}
             setNtpDriftThreshold={setNtpDriftThreshold}
             onApplySettings={applySettings}
-            onTimeChange={handleTimeChange}
-            onRoundsChange={handleRoundsChange}
           />
         </TabsContent>
 

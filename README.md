@@ -86,6 +86,9 @@ curl -X POST http://localhost:8080/api/next-round
 curl -X POST http://localhost:8080/api/previous-round
 ```
 
+All of the above control endpoints immediately broadcast the updated timer
+`status` to any connected WebSocket clients so displays stay in sync.
+
 ### Configuration
 ```bash
 # Set timer duration

@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, SkipForward, SkipBack, Plus, Minus, RotateCcw, History, FileText } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Plus, Minus, RotateCcw, History, Wifi, WifiOff } from 'lucide-react';
 import HoldButton from './HoldButton';
 import FastAdjustButton from './FastAdjustButton';
-import { ClockState } from '@/types/clock';
+import { ClockState, NTPSyncStatus } from '@/types/clock';
 import { formatTime, formatDuration, getStatusColor, getStatusText } from '@/utils/clockUtils';
 
 interface ClockDisplayProps {
@@ -12,13 +11,13 @@ interface ClockDisplayProps {
   ipAddress: string;
   betweenRoundsEnabled: boolean;
   betweenRoundsTime: number;
+  ntpSyncStatus: NTPSyncStatus;
   onTogglePlayPause: () => void;
   onNextRound: () => void;
   onPreviousRound: () => void;
   onResetTime: () => void;
   onResetRounds: () => void;
   onAdjustTimeBySeconds: (seconds: number) => void;
-  onGenerateReport: () => void;
 }
 
 const ClockDisplay: React.FC<ClockDisplayProps> = ({
@@ -26,13 +25,13 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
   ipAddress,
   betweenRoundsEnabled,
   betweenRoundsTime,
+  ntpSyncStatus,
   onTogglePlayPause,
   onNextRound,
   onPreviousRound,
   onResetTime,
   onResetRounds,
-  onAdjustTimeBySeconds,
-  onGenerateReport
+  onAdjustTimeBySeconds
 }) => {
   const statusColor = getStatusColor(
     clockState.isRunning, 
@@ -119,11 +118,31 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           </div>
         </div>
 
-        {/* IP Address */}
+        {/* IP Address and NTP Status */}
         <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center gap-2 text-white text-sm sm:text-lg md:text-xl">
-            <div className="w-2 sm:w-3 md:w-4 h-2 sm:h-3 md:h-4 bg-white rounded-full"></div>
-            <span>{ipAddress}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white text-sm sm:text-lg md:text-xl">
+              <div className="w-2 sm:w-3 md:w-4 h-2 sm:h-3 md:h-4 bg-white rounded-full"></div>
+              <span>{ipAddress}</span>
+            </div>
+            
+            {ntpSyncStatus.enabled && (
+              <div className="flex items-center gap-2 text-sm sm:text-base md:text-lg">
+                {ntpSyncStatus.healthy ? (
+                  <Wifi className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-green-400" />
+                ) : (
+                  <WifiOff className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-red-400" />
+                )}
+                <span className={ntpSyncStatus.healthy ? 'text-green-400' : 'text-red-400'}>
+                  NTP {ntpSyncStatus.healthy ? 'SYNC' : 'FAIL'}
+                </span>
+                {ntpSyncStatus.timeOffset !== 0 && (
+                  <span className="text-yellow-400 text-xs sm:text-sm">
+                    {ntpSyncStatus.timeOffset > 0 ? '+' : ''}{ntpSyncStatus.timeOffset}ms
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -135,7 +154,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
         </div>
 
         {/* Control Buttons - Responsive grid */}
-        <div className="grid grid-cols-9 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
+        <div className="grid grid-cols-8 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
           {/* Time Adjustment Group - Disabled during between rounds */}
           <div className="col-span-2 flex gap-1 sm:gap-2">
             <FastAdjustButton
@@ -205,14 +224,6 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           >
             <History className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
           </HoldButton>
-
-          {/* Generate Report Button */}
-          <Button
-            onClick={onGenerateReport}
-            className="h-12 sm:h-16 md:h-20 lg:h-24 bg-blue-600 hover:bg-blue-500 text-white rounded-xl sm:rounded-2xl"
-          >
-            <FileText className="w-4 sm:w-6 md:w-8 h-4 sm:h-6 md:h-8" />
-          </Button>
         </div>
 
         {/* Stats - Left side */}
@@ -227,6 +238,11 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
             {betweenRoundsEnabled && (
               <div className="text-purple-400 text-lg sm:text-xl md:text-2xl">
                 Between Rounds Timer: {betweenRoundsTime}s
+              </div>
+            )}
+            {ntpSyncStatus.enabled && ntpSyncStatus.syncCount > 0 && (
+              <div className="text-blue-400 text-lg sm:text-xl md:text-2xl">
+                NTP Syncs: {ntpSyncStatus.syncCount} | Errors: {ntpSyncStatus.errorCount}
               </div>
             )}
           </div>

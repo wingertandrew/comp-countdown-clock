@@ -3,8 +3,7 @@ export const formatTime = (minutes: number, seconds: number) => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-export const formatDuration = (milliseconds: number) => {
-  const totalSeconds = Math.floor(milliseconds / 1000);
+export const formatDuration = (totalSeconds: number) => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;

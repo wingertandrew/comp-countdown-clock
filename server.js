@@ -30,6 +30,7 @@ let serverClockState = {
   isBetweenRounds: false,
   betweenRoundsMinutes: 0,
   betweenRoundsSeconds: 0,
+  settingsTime: { minutes: 5, seconds: 0 },
   initialTime: { minutes: 5, seconds: 0 },
   betweenRoundsEnabled: true,
   betweenRoundsTime: 60,
@@ -231,8 +232,9 @@ function updateServerClock() {
       // Between rounds complete, advance to next round
       if (serverClockState.currentRound < serverClockState.totalRounds) {
         serverClockState.currentRound += 1;
-        serverClockState.minutes = serverClockState.initialTime.minutes;
-        serverClockState.seconds = serverClockState.initialTime.seconds;
+        serverClockState.initialTime = { ...serverClockState.settingsTime };
+        serverClockState.minutes = serverClockState.settingsTime.minutes;
+        serverClockState.seconds = serverClockState.settingsTime.seconds;
         serverClockState.isBetweenRounds = false;
         serverClockState.betweenRoundsMinutes = 0;
         serverClockState.betweenRoundsSeconds = 0;
@@ -266,7 +268,9 @@ function updateServerClock() {
     const elapsedMinutes = Math.floor(totalElapsed / 60);
     const elapsedSeconds = totalElapsed % 60;
 
-    if (newMinutes < 0) {
+    const countdownFinished = newMinutes < 0 || (newMinutes === 0 && adjustedSeconds === 0);
+
+    if (countdownFinished) {
       if (serverClockState.currentRound < serverClockState.totalRounds) {
         if (serverClockState.betweenRoundsEnabled) {
           // Start between rounds timer
@@ -281,8 +285,9 @@ function updateServerClock() {
         } else {
           // Auto-advance to next round
           serverClockState.currentRound += 1;
-          serverClockState.minutes = serverClockState.initialTime.minutes;
-          serverClockState.seconds = serverClockState.initialTime.seconds;
+          serverClockState.initialTime = { ...serverClockState.settingsTime };
+          serverClockState.minutes = serverClockState.settingsTime.minutes;
+          serverClockState.seconds = serverClockState.settingsTime.seconds;
           serverClockState.elapsedMinutes = 0;
           serverClockState.elapsedSeconds = 0;
           console.log('Auto-advanced to round', serverClockState.currentRound);
@@ -333,7 +338,10 @@ wss.on('connection', ws => {
       console.log('WebSocket message received:', data.type);
       if (data.type === 'sync-settings') {
         // Sync settings from client (initial time, rounds, between rounds config)
-        serverClockState.initialTime = data.initialTime || serverClockState.initialTime;
+        if (data.initialTime) {
+          serverClockState.settingsTime = data.initialTime;
+          serverClockState.initialTime = { ...data.initialTime };
+        }
         serverClockState.totalRounds = data.totalRounds || serverClockState.totalRounds;
         if (typeof data.betweenRoundsEnabled === 'boolean') {
           serverClockState.betweenRoundsEnabled = data.betweenRoundsEnabled;
@@ -435,8 +443,9 @@ app.post('/api/pause', (_req, res) => {
 app.post('/api/reset', (_req, res) => {
   console.log('API: Reset all');
   serverClockState.currentRound = 1;
-  serverClockState.minutes = serverClockState.initialTime.minutes;
-  serverClockState.seconds = serverClockState.initialTime.seconds;
+  serverClockState.initialTime = { ...serverClockState.settingsTime };
+  serverClockState.minutes = serverClockState.settingsTime.minutes;
+  serverClockState.seconds = serverClockState.settingsTime.seconds;
   serverClockState.isRunning = false;
   serverClockState.isPaused = false;
   serverClockState.elapsedMinutes = 0;
@@ -455,8 +464,9 @@ app.post('/api/reset', (_req, res) => {
 
 app.post('/api/reset-time', (_req, res) => {
   console.log('API: Reset time only');
-  serverClockState.minutes = serverClockState.initialTime.minutes;
-  serverClockState.seconds = serverClockState.initialTime.seconds;
+  serverClockState.initialTime = { ...serverClockState.settingsTime };
+  serverClockState.minutes = serverClockState.settingsTime.minutes;
+  serverClockState.seconds = serverClockState.settingsTime.seconds;
   serverClockState.isRunning = false;
   serverClockState.isPaused = false;
   serverClockState.elapsedMinutes = 0;
@@ -473,8 +483,9 @@ app.post('/api/reset-time', (_req, res) => {
 app.post('/api/reset-rounds', (_req, res) => {
   console.log('API: Reset rounds');
   serverClockState.currentRound = 1;
-  serverClockState.minutes = serverClockState.initialTime.minutes;
-  serverClockState.seconds = serverClockState.initialTime.seconds;
+  serverClockState.initialTime = { ...serverClockState.settingsTime };
+  serverClockState.minutes = serverClockState.settingsTime.minutes;
+  serverClockState.seconds = serverClockState.settingsTime.seconds;
   serverClockState.isRunning = false;
   serverClockState.isPaused = false;
   serverClockState.elapsedMinutes = 0;
@@ -495,8 +506,9 @@ app.post('/api/next-round', (_req, res) => {
   console.log('API: Next round');
   if (serverClockState.currentRound < serverClockState.totalRounds) {
     serverClockState.currentRound += 1;
-    serverClockState.minutes = serverClockState.initialTime.minutes;
-    serverClockState.seconds = serverClockState.initialTime.seconds;
+    serverClockState.initialTime = { ...serverClockState.settingsTime };
+    serverClockState.minutes = serverClockState.settingsTime.minutes;
+    serverClockState.seconds = serverClockState.settingsTime.seconds;
     serverClockState.elapsedMinutes = 0;
     serverClockState.elapsedSeconds = 0;
     serverClockState.isRunning = false;
@@ -518,8 +530,9 @@ app.post('/api/previous-round', (_req, res) => {
   console.log('API: Previous round');
   if (serverClockState.currentRound > 1) {
     serverClockState.currentRound -= 1;
-    serverClockState.minutes = serverClockState.initialTime.minutes;
-    serverClockState.seconds = serverClockState.initialTime.seconds;
+    serverClockState.initialTime = { ...serverClockState.settingsTime };
+    serverClockState.minutes = serverClockState.settingsTime.minutes;
+    serverClockState.seconds = serverClockState.settingsTime.seconds;
     serverClockState.elapsedMinutes = 0;
     serverClockState.elapsedSeconds = 0;
     serverClockState.isRunning = false;
@@ -558,7 +571,8 @@ app.post('/api/adjust-time', (req, res) => {
 app.post('/api/set-time', (req, res) => {
   console.log('API: Set time');
   const { minutes, seconds } = req.body;
-  serverClockState.initialTime = { minutes: minutes || 5, seconds: seconds || 0 };
+  serverClockState.settingsTime = { minutes: minutes || 5, seconds: seconds || 0 };
+  serverClockState.initialTime = { ...serverClockState.settingsTime };
   serverClockState.minutes = minutes || 5;
   serverClockState.seconds = seconds || 0;
   serverClockState.elapsedMinutes = 0;

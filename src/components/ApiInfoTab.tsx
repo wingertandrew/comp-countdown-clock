@@ -129,6 +129,24 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                     <Copy className="w-8 h-8 text-white" />
                   </Button>
                 </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-cyan-300 font-bold">POST /add-second</code>
+                    <p className="text-gray-300 mt-2 text-lg">Add one second to timer (when stopped/paused)</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/add-second')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
+                <div className="bg-gray-700 p-6 rounded-xl flex justify-between items-center">
+                  <div>
+                    <code className="text-2xl text-cyan-300 font-bold">POST /remove-second</code>
+                    <p className="text-gray-300 mt-2 text-lg">Remove one second from timer (when stopped/paused)</p>
+                  </div>
+                  <Button variant="ghost" size="lg" onClick={() => handleCopyCommand('/remove-second')} className="h-16 w-16">
+                    <Copy className="w-8 h-8 text-white" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -218,6 +236,8 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                     <div><strong>Reset All:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset</code></div>
                     <div><strong>Reset Time:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset-time</code></div>
                     <div><strong>Reset Rounds:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset-rounds</code></div>
+                    <div><strong>Add Second:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/add-second</code></div>
+                    <div><strong>Remove Second:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/remove-second</code></div>
                   </div>
                 </div>
               </div>

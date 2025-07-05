@@ -610,6 +610,40 @@ app.post('/api/set-ntp-sync', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/add-second', (_req, res) => {
+  console.log('API: Add one second');
+  if ((!serverClockState.isRunning || serverClockState.isPaused) && !serverClockState.isBetweenRounds) {
+    const totalSeconds = serverClockState.minutes * 60 + serverClockState.seconds + 1;
+    const newMinutes = Math.floor(totalSeconds / 60);
+    const newSeconds = totalSeconds % 60;
+    
+    serverClockState.minutes = newMinutes;
+    serverClockState.seconds = newSeconds;
+    serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
+    
+    broadcast({ action: 'add-second', minutes: newMinutes, seconds: newSeconds });
+    broadcast({ type: 'status', ...serverClockState });
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/remove-second', (_req, res) => {
+  console.log('API: Remove one second');
+  if ((!serverClockState.isRunning || serverClockState.isPaused) && !serverClockState.isBetweenRounds) {
+    const totalSeconds = Math.max(0, serverClockState.minutes * 60 + serverClockState.seconds - 1);
+    const newMinutes = Math.floor(totalSeconds / 60);
+    const newSeconds = totalSeconds % 60;
+    
+    serverClockState.minutes = newMinutes;
+    serverClockState.seconds = newSeconds;
+    serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
+    
+    broadcast({ action: 'remove-second', minutes: newMinutes, seconds: newSeconds });
+    broadcast({ type: 'status', ...serverClockState });
+  }
+  res.json({ success: true });
+});
+
 app.get('/api/ntp-sync', async (req, res) => {
   if (req.query.server) {
     process.env.NTP_SERVER = String(req.query.server);
@@ -781,4 +815,3 @@ server.listen(PORT, () => {
     startNtpSync();
   }
 });
-

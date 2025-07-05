@@ -578,9 +578,13 @@ app.post('/api/adjust-time', (req, res) => {
 app.post('/api/set-time', (req, res) => {
   console.log('API: Set time');
   const { minutes, seconds } = req.body;
-  serverClockState.initialTime = { minutes: minutes || 5, seconds: seconds || 0 };
-  serverClockState.minutes = minutes || 5;
-  serverClockState.seconds = seconds || 0;
+
+  const newMinutes = typeof minutes === 'number' ? minutes : 5;
+  const newSeconds = typeof seconds === 'number' ? seconds : 0;
+
+  serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
+  serverClockState.minutes = newMinutes;
+  serverClockState.seconds = newSeconds;
   serverClockState.startTime = { minutes: serverClockState.minutes, seconds: serverClockState.seconds };
   serverClockState.elapsedMinutes = 0;
   serverClockState.elapsedSeconds = 0;
@@ -589,7 +593,7 @@ app.post('/api/set-time', (req, res) => {
   serverClockState.totalPausedTime = 0;
   serverClockState.currentPauseDuration = 0;
   serverClockState.pauseStartTime = null;
-  broadcast({ action: 'set-time', minutes, seconds });
+  broadcast({ action: 'set-time', minutes: newMinutes, seconds: newSeconds });
   // Immediately broadcast updated status so all clients reflect the change
   broadcast({ type: 'status', ...serverClockState });
   res.json({ success: true });

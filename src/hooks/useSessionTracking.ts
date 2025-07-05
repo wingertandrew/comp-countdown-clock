@@ -15,16 +15,25 @@ export const useSessionTracking = (clockState: ClockState) => {
   }, []);
 
   // Add event to session
-  const addEvent = useCallback((type: SessionEvent['type'], data?: any) => {
-    const event: SessionEvent = {
-      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now(),
-      type,
-      round: clockState.currentRound,
-      data
-    };
-    setSessionEvents(prev => [...prev, event]);
-  }, [clockState.currentRound]);
+  const addEvent = useCallback(
+    (
+      type: SessionEvent['type'],
+      data?: any,
+      roundOverride?: number
+    ) => {
+      const event: SessionEvent = {
+        id: `${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
+        timestamp: Date.now(),
+        type,
+        round: roundOverride ?? clockState.currentRound,
+        data
+      };
+      setSessionEvents(prev => [...prev, event]);
+    },
+    [clockState.currentRound]
+  );
 
   // Generate report
   const generateReport = useCallback((): SessionReport => {
@@ -146,16 +155,16 @@ export const useSessionTracking = (clockState: ClockState) => {
       }
       
       if (lastState.currentRound !== clockState.currentRound) {
-        addEvent('round_end', { previousRound: lastState.currentRound });
-        addEvent('round_start', { newRound: clockState.currentRound });
+        addEvent('round_end', { previousRound: lastState.currentRound }, lastState.currentRound);
+        addEvent('round_start', { newRound: clockState.currentRound }, clockState.currentRound);
       }
       
       if (!lastState.isBetweenRounds && clockState.isBetweenRounds) {
-        addEvent('between_rounds_start');
+        addEvent('between_rounds_start', undefined, clockState.currentRound);
       }
       
       if (lastState.isBetweenRounds && !clockState.isBetweenRounds) {
-        addEvent('between_rounds_end');
+        addEvent('between_rounds_end', undefined, lastState.currentRound);
       }
     }
     

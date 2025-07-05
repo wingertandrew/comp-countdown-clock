@@ -564,7 +564,6 @@ app.post('/api/adjust-time', (req, res) => {
     
     serverClockState.minutes = newMinutes;
     serverClockState.seconds = newSeconds;
-    serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
     if (!serverClockState.isRunning) {
       serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
     }
@@ -649,7 +648,6 @@ app.post('/api/add-second', (_req, res) => {
 
     serverClockState.minutes = newMinutes;
     serverClockState.seconds = newSeconds;
-    serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
     if (!serverClockState.isRunning) {
       serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
     }
@@ -669,7 +667,6 @@ app.post('/api/remove-second', (_req, res) => {
 
     serverClockState.minutes = newMinutes;
     serverClockState.seconds = newSeconds;
-    serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
     if (!serverClockState.isRunning) {
       serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
     }

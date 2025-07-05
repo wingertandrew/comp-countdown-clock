@@ -31,6 +31,7 @@ let serverClockState = {
   betweenRoundsMinutes: 0,
   betweenRoundsSeconds: 0,
   initialTime: { minutes: 5, seconds: 0 },
+  startTime: { minutes: 5, seconds: 0 },
   betweenRoundsEnabled: true,
   betweenRoundsTime: 60,
   lastUpdateTime: Date.now(),
@@ -233,6 +234,7 @@ function updateServerClock() {
         serverClockState.currentRound += 1;
         serverClockState.minutes = serverClockState.initialTime.minutes;
         serverClockState.seconds = serverClockState.initialTime.seconds;
+        serverClockState.startTime = { ...serverClockState.initialTime };
         serverClockState.isBetweenRounds = false;
         serverClockState.betweenRoundsMinutes = 0;
         serverClockState.betweenRoundsSeconds = 0;
@@ -262,7 +264,8 @@ function updateServerClock() {
     const newMinutes = newSeconds < 0 ? serverClockState.minutes - 1 : serverClockState.minutes;
     const adjustedSeconds = newSeconds < 0 ? 59 : newSeconds;
 
-    const totalElapsed = (serverClockState.initialTime.minutes * 60 + serverClockState.initialTime.seconds) - (newMinutes * 60 + adjustedSeconds);
+    const totalElapsed = (serverClockState.startTime.minutes * 60 + serverClockState.startTime.seconds) -
+      (newMinutes * 60 + adjustedSeconds);
     const elapsedMinutes = Math.floor(totalElapsed / 60);
     const elapsedSeconds = totalElapsed % 60;
 
@@ -285,6 +288,7 @@ function updateServerClock() {
           serverClockState.currentRound += 1;
           serverClockState.minutes = serverClockState.initialTime.minutes;
           serverClockState.seconds = serverClockState.initialTime.seconds;
+          serverClockState.startTime = { ...serverClockState.initialTime };
           serverClockState.elapsedMinutes = 0;
           serverClockState.elapsedSeconds = 0;
           console.log('Auto-advanced to round', serverClockState.currentRound);
@@ -395,6 +399,12 @@ startServerTimer();
 
 app.post('/api/start', (_req, res) => {
   console.log('API: Start timer');
+  if (!serverClockState.isRunning) {
+    serverClockState.startTime = {
+      minutes: serverClockState.minutes,
+      seconds: serverClockState.seconds
+    };
+  }
   if (serverClockState.isPaused && serverClockState.pauseStartTime) {
     serverClockState.totalPausedTime += Math.floor(
       (Date.now() + serverClockState.ntpOffset - serverClockState.pauseStartTime) /
@@ -439,6 +449,7 @@ app.post('/api/reset', (_req, res) => {
   serverClockState.currentRound = 1;
   serverClockState.minutes = serverClockState.initialTime.minutes;
   serverClockState.seconds = serverClockState.initialTime.seconds;
+  serverClockState.startTime = { ...serverClockState.initialTime };
   serverClockState.isRunning = false;
   serverClockState.isPaused = false;
   serverClockState.elapsedMinutes = 0;
@@ -459,6 +470,7 @@ app.post('/api/reset-time', (_req, res) => {
   console.log('API: Reset time only');
   serverClockState.minutes = serverClockState.initialTime.minutes;
   serverClockState.seconds = serverClockState.initialTime.seconds;
+  serverClockState.startTime = { ...serverClockState.initialTime };
   serverClockState.isRunning = false;
   serverClockState.isPaused = false;
   serverClockState.elapsedMinutes = 0;
@@ -477,6 +489,7 @@ app.post('/api/reset-rounds', (_req, res) => {
   serverClockState.currentRound = 1;
   serverClockState.minutes = serverClockState.initialTime.minutes;
   serverClockState.seconds = serverClockState.initialTime.seconds;
+  serverClockState.startTime = { ...serverClockState.initialTime };
   serverClockState.isRunning = false;
   serverClockState.isPaused = false;
   serverClockState.elapsedMinutes = 0;
@@ -499,6 +512,7 @@ app.post('/api/next-round', (_req, res) => {
     serverClockState.currentRound += 1;
     serverClockState.minutes = serverClockState.initialTime.minutes;
     serverClockState.seconds = serverClockState.initialTime.seconds;
+    serverClockState.startTime = { ...serverClockState.initialTime };
     serverClockState.elapsedMinutes = 0;
     serverClockState.elapsedSeconds = 0;
     serverClockState.isRunning = false;
@@ -522,6 +536,7 @@ app.post('/api/previous-round', (_req, res) => {
     serverClockState.currentRound -= 1;
     serverClockState.minutes = serverClockState.initialTime.minutes;
     serverClockState.seconds = serverClockState.initialTime.seconds;
+    serverClockState.startTime = { ...serverClockState.initialTime };
     serverClockState.elapsedMinutes = 0;
     serverClockState.elapsedSeconds = 0;
     serverClockState.isRunning = false;
@@ -550,6 +565,9 @@ app.post('/api/adjust-time', (req, res) => {
     serverClockState.minutes = newMinutes;
     serverClockState.seconds = newSeconds;
     serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
+    if (!serverClockState.isRunning) {
+      serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
+    }
     
     broadcast({ action: 'adjust-time', minutes: newMinutes, seconds: newSeconds });
     broadcast({ type: 'status', ...serverClockState });
@@ -563,6 +581,7 @@ app.post('/api/set-time', (req, res) => {
   serverClockState.initialTime = { minutes: minutes || 5, seconds: seconds || 0 };
   serverClockState.minutes = minutes || 5;
   serverClockState.seconds = seconds || 0;
+  serverClockState.startTime = { minutes: serverClockState.minutes, seconds: serverClockState.seconds };
   serverClockState.elapsedMinutes = 0;
   serverClockState.elapsedSeconds = 0;
   serverClockState.isRunning = false;
@@ -623,10 +642,13 @@ app.post('/api/add-second', (_req, res) => {
     const totalSeconds = serverClockState.minutes * 60 + serverClockState.seconds + 1;
     const newMinutes = Math.floor(totalSeconds / 60);
     const newSeconds = totalSeconds % 60;
-    
+
     serverClockState.minutes = newMinutes;
     serverClockState.seconds = newSeconds;
     serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
+    if (!serverClockState.isRunning) {
+      serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
+    }
     
     broadcast({ action: 'add-second', minutes: newMinutes, seconds: newSeconds });
     broadcast({ type: 'status', ...serverClockState });
@@ -640,10 +662,13 @@ app.post('/api/remove-second', (_req, res) => {
     const totalSeconds = Math.max(0, serverClockState.minutes * 60 + serverClockState.seconds - 1);
     const newMinutes = Math.floor(totalSeconds / 60);
     const newSeconds = totalSeconds % 60;
-    
+
     serverClockState.minutes = newMinutes;
     serverClockState.seconds = newSeconds;
     serverClockState.initialTime = { minutes: newMinutes, seconds: newSeconds };
+    if (!serverClockState.isRunning) {
+      serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
+    }
     
     broadcast({ action: 'remove-second', minutes: newMinutes, seconds: newSeconds });
     broadcast({ type: 'status', ...serverClockState });

@@ -327,6 +327,13 @@ const CountdownClock = () => {
   const nextRound = async () => {
     if (clockState.currentRound < clockState.totalRounds) {
       try {
+        // Ensure server initial time matches current timer settings
+        await fetch('/api/set-time', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ minutes: inputMinutes, seconds: inputSeconds })
+        });
+
         const response = await fetch('/api/next-round', { method: 'POST' });
         if (response.ok) {
           addDebugLog('UI', 'Next round via API', {
@@ -338,11 +345,12 @@ const CountdownClock = () => {
       }
 
       const newRound = clockState.currentRound + 1;
+      setInitialTime({ minutes: inputMinutes, seconds: inputSeconds });
       setClockState(prev => ({
         ...prev,
         currentRound: newRound,
-        minutes: initialTime.minutes,
-        seconds: initialTime.seconds,
+        minutes: inputMinutes,
+        seconds: inputSeconds,
         isRunning: false,
         isPaused: false,
         elapsedMinutes: 0,

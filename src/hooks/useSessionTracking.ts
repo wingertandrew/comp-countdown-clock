@@ -8,6 +8,15 @@ export const useSessionTracking = (clockState: ClockState) => {
   const [currentReport, setCurrentReport] = useState<SessionReport | null>(null);
   const sessionIdRef = useRef<string>('');
   const lastStateRef = useRef<ClockState | null>(null);
+  
+  // Track actual clock times per round
+  const roundTimesRef = useRef<Map<number, {
+    runTime: number;
+    pauseTime: number;
+    betweenRoundsTime: number;
+    startTime: number;
+    endTime: number;
+  }>>(new Map());
 
   // Generate session ID when session starts
   const generateSessionId = useCallback(() => {
@@ -35,51 +44,80 @@ export const useSessionTracking = (clockState: ClockState) => {
     [clockState.currentRound]
   );
 
+  // Update round times based on current clock state
+  useEffect(() => {
+    if (sessionStartTime && clockState.isRunning) {
+      const currentRound = clockState.currentRound;
+      const currentRoundData = roundTimesRef.current.get(currentRound) || {
+        runTime: 0,
+        pauseTime: 0,
+        betweenRoundsTime: 0,
+        startTime: Date.now(),
+        endTime: Date.now()
+      };
+
+      // Calculate actual run time from clock state (initial time - current time)
+      const totalSecondsInRound = (clockState.minutes + clockState.seconds / 60) * 60;
+      const currentSecondsInRound = clockState.minutes * 60 + clockState.seconds;
+      const actualRunTime = totalSecondsInRound - currentSecondsInRound;
+
+      // Use clock state for pause and between rounds times
+      const pauseTime = clockState.totalPausedTime / 1000; // Convert from ms to seconds
+      const betweenRoundsTime = clockState.isBetweenRounds ? 
+        (clockState.betweenRoundsTime - (clockState.betweenRoundsMinutes * 60 + clockState.betweenRoundsSeconds)) : 0;
+
+      roundTimesRef.current.set(currentRound, {
+        ...currentRoundData,
+        runTime: Math.max(0, actualRunTime),
+        pauseTime: Math.max(0, pauseTime),
+        betweenRoundsTime: Math.max(0, betweenRoundsTime),
+        endTime: Date.now()
+      });
+    }
+  }, [clockState, sessionStartTime]);
+
   // Generate report
   const generateReport = useCallback((): SessionReport => {
     const endTime = Date.now();
     const expectedTotalTime = (clockState.minutes + clockState.seconds / 60) * clockState.totalRounds * 60 * 1000;
     
-    // Calculate round summaries
+    // Calculate round summaries using actual clock times
     const rounds: RoundSummary[] = [];
     for (let i = 1; i <= clockState.totalRounds; i++) {
       const roundEvents = sessionEvents.filter(e => e.round === i);
-      const roundStart = roundEvents.find(e => e.type === 'round_start')?.timestamp || sessionStartTime || 0;
-      const roundEnd = roundEvents.find(e => e.type === 'round_end')?.timestamp || endTime;
+      const roundData = roundTimesRef.current.get(i) || {
+        runTime: 0,
+        pauseTime: 0,
+        betweenRoundsTime: 0,
+        startTime: sessionStartTime || 0,
+        endTime: endTime
+      };
       
-      const pauseEvents = roundEvents.filter(e => e.type === 'pause');
-      const resumeEvents = roundEvents.filter(e => e.type === 'resume');
+      // Convert seconds to milliseconds for consistency
+      const runTime = roundData.runTime * 1000;
+      const pauseTime = roundData.pauseTime * 1000;
+      const betweenRoundsTime = roundData.betweenRoundsTime * 1000;
+      const totalTime = runTime + pauseTime + betweenRoundsTime;
       
-      let pauseTime = 0;
-      pauseEvents.forEach((pause, index) => {
-        const resume = resumeEvents[index];
-        if (resume) {
-          pauseTime += resume.timestamp - pause.timestamp;
-        }
-      });
-      
-      const betweenRoundsEvents = roundEvents.filter(e => e.type === 'between_rounds_start' || e.type === 'between_rounds_end');
-      let betweenRoundsTime = 0;
-      if (betweenRoundsEvents.length >= 2) {
-        betweenRoundsTime = betweenRoundsEvents[1].timestamp - betweenRoundsEvents[0].timestamp;
-      }
-      
-      const totalTime = roundEnd - roundStart;
-      const runTime = totalTime - pauseTime - betweenRoundsTime;
-      
-      // Detect anomalies
+      // Detect anomalies based on actual clock behavior
       const anomalies: string[] = [];
+      const expectedRoundTime = expectedTotalTime / clockState.totalRounds;
+      
       if (pauseTime > 120000) { // More than 2 minutes of pause
         anomalies.push('Excessive pause time');
       }
-      if (runTime < expectedTotalTime * 0.8 / clockState.totalRounds) { // Less than 80% of expected time
+      if (runTime < expectedRoundTime * 0.8) { // Less than 80% of expected run time
         anomalies.push('Round shorter than expected');
+      }
+      if (i === clockState.currentRound && clockState.isRunning && !clockState.isPaused) {
+        // Current active round
+        anomalies.push('Round in progress');
       }
       
       rounds.push({
         round: i,
-        startTime: roundStart,
-        endTime: roundEnd,
+        startTime: roundData.startTime,
+        endTime: roundData.endTime,
         runTime,
         pauseTime,
         betweenRoundsTime,
@@ -155,8 +193,30 @@ export const useSessionTracking = (clockState: ClockState) => {
       }
       
       if (lastState.currentRound !== clockState.currentRound) {
+        // Round transition - finalize the previous round times
+        if (lastState.currentRound > 0) {
+          const prevRoundData = roundTimesRef.current.get(lastState.currentRound);
+          if (prevRoundData) {
+            roundTimesRef.current.set(lastState.currentRound, {
+              ...prevRoundData,
+              endTime: Date.now()
+            });
+          }
+        }
+        
         addEvent('round_end', { previousRound: lastState.currentRound }, lastState.currentRound);
         addEvent('round_start', { newRound: clockState.currentRound }, clockState.currentRound);
+        
+        // Initialize new round data
+        if (!roundTimesRef.current.has(clockState.currentRound)) {
+          roundTimesRef.current.set(clockState.currentRound, {
+            runTime: 0,
+            pauseTime: 0,
+            betweenRoundsTime: 0,
+            startTime: Date.now(),
+            endTime: Date.now()
+          });
+        }
       }
       
       if (!lastState.isBetweenRounds && clockState.isBetweenRounds) {
@@ -177,6 +237,7 @@ export const useSessionTracking = (clockState: ClockState) => {
     setSessionStartTime(null);
     setCurrentReport(null);
     sessionIdRef.current = '';
+    roundTimesRef.current.clear();
     addEvent('reset');
   }, [addEvent]);
 

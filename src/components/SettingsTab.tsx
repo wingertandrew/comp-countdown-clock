@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,8 @@ interface SettingsTabProps {
   setNtpSyncInterval: (interval: number) => void;
   setNtpDriftThreshold: (threshold: number) => void;
   onApplySettings: () => void;
+  onTimeChange?: (minutes: number, seconds: number) => void;
+  onRoundsChange?: (rounds: number) => void;
 }
 
 const SettingsTab: React.FC<SettingsTabProps> = ({
@@ -43,8 +45,39 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   setNtpSyncEnabled,
   setNtpSyncInterval,
   setNtpDriftThreshold,
-  onApplySettings
+  onApplySettings,
+  onTimeChange,
+  onRoundsChange
 }) => {
+  // Auto-apply time changes
+  useEffect(() => {
+    if (onTimeChange) {
+      onTimeChange(inputMinutes, inputSeconds);
+    }
+  }, [inputMinutes, inputSeconds, onTimeChange]);
+
+  // Auto-apply rounds changes
+  useEffect(() => {
+    if (onRoundsChange) {
+      onRoundsChange(inputRounds);
+    }
+  }, [inputRounds, onRoundsChange]);
+
+  const handleMinutesChange = (newMinutes: number) => {
+    const validMinutes = Math.max(0, Math.min(59, newMinutes));
+    setInputMinutes(validMinutes);
+  };
+
+  const handleSecondsChange = (newSeconds: number) => {
+    const validSeconds = Math.max(0, Math.min(59, newSeconds));
+    setInputSeconds(validSeconds);
+  };
+
+  const handleRoundsChange = (newRounds: number) => {
+    const validRounds = Math.max(1, Math.min(15, newRounds));
+    setInputRounds(validRounds);
+  };
+
   return (
     <div className="space-y-6 p-4 min-h-screen bg-gray-900">
       <Card className="bg-gray-800 border-gray-600">
@@ -56,12 +89,27 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Minutes</label>
-              <Input type="number" min="0" max="59" value={inputMinutes} onChange={e => setInputMinutes(Math.max(0, parseInt(e.target.value) || 0))} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
+              <Input 
+                type="number" 
+                min="0" 
+                max="59" 
+                value={inputMinutes} 
+                onChange={e => handleMinutesChange(parseInt(e.target.value) || 0)} 
+                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" 
+              />
               <div className="flex gap-6 mt-6">
-                <Button onClick={() => setInputMinutes(Math.max(0, inputMinutes - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
+                <Button 
+                  onClick={() => handleMinutesChange(inputMinutes - 1)} 
+                  size="lg" 
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                >
                   <Minus className="w-12 h-12" />
                 </Button>
-                <Button onClick={() => setInputMinutes(Math.min(59, inputMinutes + 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
+                <Button 
+                  onClick={() => handleMinutesChange(inputMinutes + 1)} 
+                  size="lg" 
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                >
                   <Plus className="w-12 h-12" />
                 </Button>
               </div>
@@ -69,12 +117,27 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Seconds</label>
-              <Input type="number" min="0" max="59" value={inputSeconds} onChange={e => setInputSeconds(Math.max(0, parseInt(e.target.value) || 0))} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
+              <Input 
+                type="number" 
+                min="0" 
+                max="59" 
+                value={inputSeconds} 
+                onChange={e => handleSecondsChange(parseInt(e.target.value) || 0)} 
+                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" 
+              />
               <div className="flex gap-6 mt-6">
-                <Button onClick={() => setInputSeconds(Math.max(0, inputSeconds - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
+                <Button 
+                  onClick={() => handleSecondsChange(inputSeconds - 1)} 
+                  size="lg" 
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                >
                   <Minus className="w-12 h-12" />
                 </Button>
-                <Button onClick={() => setInputSeconds(Math.min(59, inputSeconds + 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
+                <Button 
+                  onClick={() => handleSecondsChange(inputSeconds + 1)} 
+                  size="lg" 
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                >
                   <Plus className="w-12 h-12" />
                 </Button>
               </div>
@@ -82,12 +145,27 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             
             <div className="flex flex-col items-center">
               <label className="block text-3xl font-medium mb-6 text-white">Rounds (1-15)</label>
-              <Input type="number" min="1" max="15" value={inputRounds} onChange={e => setInputRounds(parseInt(e.target.value) || 1)} className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" />
+              <Input 
+                type="number" 
+                min="1" 
+                max="15" 
+                value={inputRounds} 
+                onChange={e => handleRoundsChange(parseInt(e.target.value) || 1)} 
+                className="h-32 bg-gray-700 border-gray-500 text-center text-white text-8xl font-bold rounded-2xl" 
+              />
               <div className="flex gap-6 mt-6">
-                <Button onClick={() => setInputRounds(Math.max(1, inputRounds - 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
+                <Button 
+                  onClick={() => handleRoundsChange(inputRounds - 1)} 
+                  size="lg" 
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                >
                   <Minus className="w-12 h-12" />
                 </Button>
-                <Button onClick={() => setInputRounds(Math.min(15, inputRounds + 1))} size="lg" className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl">
+                <Button 
+                  onClick={() => handleRoundsChange(inputRounds + 1)} 
+                  size="lg" 
+                  className="h-24 w-24 text-6xl bg-gray-400 hover:bg-gray-300 text-black rounded-xl"
+                >
                   <Plus className="w-12 h-12" />
                 </Button>
               </div>
@@ -151,7 +229,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </CardContent>
           </Card>
 
-          {/* NTP Sync Settings - Always Expanded */}
           <Card className="bg-gray-700 border-gray-500">
             <CardHeader>
               <CardTitle className="text-2xl text-white flex items-center gap-3">
@@ -174,7 +251,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 />
               </div>
               
-              {/* Always show NTP configuration - grayed out when disabled */}
               <div className={`space-y-6 ${!ntpSyncEnabled ? 'opacity-50' : ''}`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col items-center space-y-4">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Info, Bug } from 'lucide-react';
+import { Settings, Info, Server, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ClockState, NTPSyncStatus } from '@/types/clock';
 import { useDebugLog } from '@/hooks/useDebugLog';
@@ -8,6 +8,7 @@ import { NTPSyncManager, DEFAULT_NTP_CONFIG } from '@/utils/ntpSync';
 
 import ClockDisplay from './ClockDisplay';
 import SettingsTab from './SettingsTab';
+import InfoTab from './InfoTab';
 import ApiInfoTab from './ApiInfoTab';
 import DebugTab from './DebugTab';
 import FloatingClock from './FloatingClock';
@@ -486,7 +487,7 @@ const CountdownClock = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
-        <TabsList className="grid w-full grid-cols-4 mb-0 bg-gray-800 border-gray-700">
+        <TabsList className="grid w-full grid-cols-5 mb-0 bg-gray-800 border-gray-700">
           <TabsTrigger value="clock" className="text-lg py-3 data-[state=active]:bg-gray-600">Clock</TabsTrigger>
           <TabsTrigger value="settings" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Settings className="w-5 h-5 mr-2" />
@@ -494,6 +495,10 @@ const CountdownClock = () => {
           </TabsTrigger>
           <TabsTrigger value="info" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Info className="w-5 h-5 mr-2" />
+            Info
+          </TabsTrigger>
+          <TabsTrigger value="api" className="text-lg py-3 data-[state=active]:bg-gray-600">
+            <Server className="w-5 h-5 mr-2" />
             API Info
           </TabsTrigger>
           <TabsTrigger value="debug" className="text-lg py-3 data-[state=active]:bg-gray-600">
@@ -549,6 +554,10 @@ const CountdownClock = () => {
         </TabsContent>
 
         <TabsContent value="info">
+          <InfoTab />
+        </TabsContent>
+
+        <TabsContent value="api">
           <ApiInfoTab
             ipAddress={ipAddress}
             onCommandCopy={handleCommandCopy}

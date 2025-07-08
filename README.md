@@ -116,6 +116,14 @@ curl -X POST http://localhost:4040/api/set-between-rounds \
 curl http://localhost:4040/api/status
 ```
 
+The application also exposes a lightweight endpoint for integrations:
+
+```bash
+curl http://localhost:4040/clock_status
+```
+
+Each request to `/clock_status` is recorded and the visitor list is broadcast to all WebSocket clients. The response contains the current timer status, end time, and server IP.
+
 ### NTP Sync
 ```bash
 # Sync time using the default server (time.google.com)

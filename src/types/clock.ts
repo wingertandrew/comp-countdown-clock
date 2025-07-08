@@ -41,3 +41,8 @@ export interface NTPSyncStatus {
   syncCount: number;
   errorCount: number;
 }
+
+export interface ClockStatusVisitor {
+  ip: string;
+  lastRequestTime: number;
+}

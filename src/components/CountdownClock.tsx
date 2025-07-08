@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Server, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ClockState, NTPSyncStatus } from '@/types/clock';
+import { ClockState, NTPSyncStatus, ClockStatusVisitor } from '@/types/clock';
 import { useDebugLog } from '@/hooks/useDebugLog';
 import { NTPSyncManager, DEFAULT_NTP_CONFIG } from '@/utils/ntpSync';
 
@@ -57,6 +57,7 @@ const CountdownClock = () => {
   const [activeTab, setActiveTab] = useState('clock');
   const [ipAddress, setIpAddress] = useState('');
   const [connectedClients, setConnectedClients] = useState<any[]>([]);
+  const [clockStatusVisitors, setClockStatusVisitors] = useState<ClockStatusVisitor[]>([]);
 
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
@@ -135,6 +136,9 @@ const CountdownClock = () => {
             } else if (data.type === 'clients') {
               setConnectedClients(data.clients || []);
               addDebugLog('WEBSOCKET', 'Connected clients updated', { count: data.clients?.length || 0 });
+            } else if (data.type === 'clock_status_visitors') {
+              setClockStatusVisitors(data.visitors || []);
+              addDebugLog('WEBSOCKET', 'Clock status visitors updated', { count: data.visitors?.length || 0 });
             } else if (data.type === 'request-hostname') {
               ws.send(
                 JSON.stringify({
@@ -570,6 +574,7 @@ const CountdownClock = () => {
             onClearDebugLog={debugLogProps.clearDebugLog}
             connectedClients={connectedClients}
             ntpSyncStatus={ntpSyncStatus}
+            clockStatusVisitors={clockStatusVisitors}
           />
         </TabsContent>
       </Tabs>

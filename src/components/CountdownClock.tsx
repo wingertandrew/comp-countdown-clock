@@ -67,8 +67,17 @@ const CountdownClock = () => {
   const ntpManagerRef = useRef<NTPSyncManager | null>(null);
   const warningAudioRef = useRef<HTMLAudioElement | null>(null);
   const endAudioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   const { addDebugLog, ...debugLogProps } = useDebugLog();
+
+  // Load saved audio paths from localStorage on first render
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const warn = localStorage.getItem('warningSoundPath');
+    const end = localStorage.getItem('endSoundPath');
+    if (warn) setWarningAudioPath(warn);
+    if (end) setEndAudioPath(end);
+  }, []);
 
   // Get local IP address for display
   useEffect(() => {
@@ -531,7 +540,12 @@ const CountdownClock = () => {
     } catch (error) {
       addDebugLog('UI', 'Failed to sync settings with server', { error: error.message });
     }
-    
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('warningSoundPath', warningAudioPath);
+      localStorage.setItem('endSoundPath', endAudioPath);
+    }
+
     setActiveTab('clock');
     toast({ title: "Settings Applied" });
   };

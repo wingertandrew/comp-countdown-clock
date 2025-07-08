@@ -138,7 +138,7 @@ const CountdownClock = () => {
               addDebugLog('WEBSOCKET', 'Connected clients updated', { count: data.clients?.length || 0 });
             } else if (data.type === 'clock_status_visitors') {
               setClockStatusVisitors(data.visitors || []);
-              addDebugLog('WEBSOCKET', 'Clock status visitors updated', { count: data.visitors?.length || 0 });
+// clean result – no log
             } else if (data.type === 'request-hostname') {
               ws.send(
                 JSON.stringify({

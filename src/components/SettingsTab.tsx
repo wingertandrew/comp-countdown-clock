@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Plus, Minus, Wifi, Server } from 'lucide-react';
+import { Clock, Plus, Minus, Wifi, Server, Volume2 } from 'lucide-react';
 
 interface SettingsTabProps {
   inputMinutes: number;
@@ -15,6 +15,8 @@ interface SettingsTabProps {
   ntpSyncEnabled: boolean;
   ntpSyncInterval: number;
   ntpDriftThreshold: number;
+  warningSoundPath: string;
+  endSoundPath: string;
   setInputMinutes: (value: number) => void;
   setInputSeconds: (value: number) => void;
   setInputRounds: (value: number) => void;
@@ -23,6 +25,8 @@ interface SettingsTabProps {
   setNtpSyncEnabled: (enabled: boolean) => void;
   setNtpSyncInterval: (interval: number) => void;
   setNtpDriftThreshold: (threshold: number) => void;
+  setWarningSoundPath: (path: string) => void;
+  setEndSoundPath: (path: string) => void;
   onApplySettings: () => void;
 }
 
@@ -35,6 +39,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   ntpSyncEnabled,
   ntpSyncInterval,
   ntpDriftThreshold,
+  warningSoundPath,
+  endSoundPath,
   setInputMinutes,
   setInputSeconds,
   setInputRounds,
@@ -43,6 +49,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   setNtpSyncEnabled,
   setNtpSyncInterval,
   setNtpDriftThreshold,
+  setWarningSoundPath,
+  setEndSoundPath,
   onApplySettings
 }) => {
   return (
@@ -256,6 +264,40 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     <p>• Fallback to local time if all servers fail</p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Audio Alert Settings */}
+          <Card className="bg-gray-700 border-gray-500">
+            <CardHeader>
+              <CardTitle className="text-2xl text-white flex items-center gap-3">
+                <Volume2 className="w-8 h-8" />
+                Audio Alerts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col space-y-4">
+                <label className="block text-xl font-medium text-white">
+                  10s Warning Sound Path
+                </label>
+                <Input
+                  type="text"
+                  value={warningSoundPath}
+                  onChange={(e) => setWarningSoundPath(e.target.value)}
+                  className="bg-gray-700 border-gray-500 text-white rounded-xl"
+                />
+              </div>
+              <div className="flex flex-col space-y-4">
+                <label className="block text-xl font-medium text-white">
+                  Final Second Sound Path
+                </label>
+                <Input
+                  type="text"
+                  value={endSoundPath}
+                  onChange={(e) => setEndSoundPath(e.target.value)}
+                  className="bg-gray-700 border-gray-500 text-white rounded-xl"
+                />
               </div>
             </CardContent>
           </Card>

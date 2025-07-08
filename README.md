@@ -26,12 +26,15 @@ A touch-friendly countdown clock application. Originally built for Raspberry Pi,
 ```bash
 # Clone and setup
 git clone <repository-url>
-cd countdown-clock-app
+cd round-ready-countdown-clock
 npm install
 npm run dev
 ```
 
-The application will be available at `http://localhost:4040`
+The application will be available at `http://localhost:4040`.
+If port 4040 is already taken, set the `PORT` environment variable,
+for example run `PORT=5000 npm run dev` (or `PORT=5000 npm start`)
+to use a different port.
 
 ### Development on macOS
 1. Install Node.js via [Homebrew](https://brew.sh/) with `brew install node` or download it from the official website.

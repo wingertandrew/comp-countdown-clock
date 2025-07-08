@@ -898,7 +898,7 @@ app.get('*', (_req, res) => {
   res.sendFile(join(dist, 'index.html'));
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 4040;
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
   console.log(`API Documentation: http://localhost:${PORT}/api/docs`);

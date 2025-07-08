@@ -49,6 +49,15 @@ let ntpSyncTimer = null;
 
 // Track connected WebSocket clients
 const connectedClients = new Map();
+const clockStatusVisitors = new Map();
+
+function broadcastClockStatusVisitors() {
+  const visitors = Array.from(clockStatusVisitors.entries()).map(([ip, ts]) => ({
+    ip,
+    lastRequestTime: ts
+  }));
+  broadcast({ type: 'clock_status_visitors', visitors });
+}
 
 function getLocalIpAddress() {
   const interfaces = os.networkInterfaces();
@@ -344,6 +353,12 @@ wss.on('connection', ws => {
     })
   );
   broadcastClients();
+  ws.send(
+    JSON.stringify({
+      type: 'clock_status_visitors',
+      visitors: Array.from(clockStatusVisitors.entries()).map(([ip, ts]) => ({ ip, lastRequestTime: ts }))
+    })
+  );
   ws.send(JSON.stringify({ type: 'request-hostname' }));
 
   ws.on('message', msg => {
@@ -730,6 +745,10 @@ app.get('/api/status', (req, res) => {
 
 // Clock status endpoint for external integration
 app.get('/clock_status', (req, res) => {
+  const visitorIp = normalizeIp(req.ip);
+  clockStatusVisitors.set(visitorIp, Date.now() + serverClockState.ntpOffset);
+  broadcastClockStatusVisitors();
+
   const now = Date.now() + serverClockState.ntpOffset;
   let status = 0; // 0 = stopped, 1 = running, 2 = paused, 3 = between rounds
   let endTime = null;

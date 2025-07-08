@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download } from 'lucide-react';
-import { DebugLogEntry, DebugFilter, NTPSyncStatus } from '@/types/clock';
+import { DebugLogEntry, DebugFilter, NTPSyncStatus, ClockStatusVisitor } from '@/types/clock';
 import { downloadCSV } from '@/utils/clockUtils';
 
 interface DebugTabProps {
@@ -14,6 +14,7 @@ interface DebugTabProps {
   filteredDebugLog: DebugLogEntry[];
   connectedClients: any[];
   ntpSyncStatus: NTPSyncStatus;
+  clockStatusVisitors: ClockStatusVisitor[];
 }
 
 const DebugTab: React.FC<DebugTabProps> = ({
@@ -23,7 +24,8 @@ const DebugTab: React.FC<DebugTabProps> = ({
   onClearDebugLog,
   filteredDebugLog,
   connectedClients,
-  ntpSyncStatus
+  ntpSyncStatus,
+  clockStatusVisitors
 }) => {
   const handleDownloadCSV = () => {
     const csvData = debugLog.map(entry => ({
@@ -62,6 +64,33 @@ const DebugTab: React.FC<DebugTabProps> = ({
             {connectedClients.length === 0 && (
               <div className="col-span-full text-gray-400 text-center py-8 text-xl">
                 No clients connected
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gray-800 border-gray-600">
+        <CardHeader>
+          <CardTitle className="text-3xl text-white mb-4">Clock Status Visitors ({clockStatusVisitors.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {clockStatusVisitors.map((visitor, index) => (
+              <div key={index} className="bg-gray-700 p-4 rounded-xl border border-gray-600">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-white font-semibold">Visitor {index + 1}</span>
+                </div>
+                <div className="text-gray-300 text-sm space-y-1">
+                  <div>IP: {visitor.ip}</div>
+                  <div>Last Request: {new Date(visitor.lastRequestTime).toLocaleTimeString()}</div>
+                </div>
+              </div>
+            ))}
+            {clockStatusVisitors.length === 0 && (
+              <div className="col-span-full text-gray-400 text-center py-8 text-xl">
+                No visitors yet
               </div>
             )}
           </div>

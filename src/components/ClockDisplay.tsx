@@ -18,6 +18,7 @@ interface ClockDisplayProps {
   onResetTime: () => void;
   onResetRounds: () => void;
   onAdjustTimeBySeconds: (seconds: number) => void;
+  audioAlertStatus?: string | null;
 }
 
 const ClockDisplay: React.FC<ClockDisplayProps> = ({
@@ -31,7 +32,8 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
   onPreviousRound,
   onResetTime,
   onResetRounds,
-  onAdjustTimeBySeconds
+  onAdjustTimeBySeconds,
+  audioAlertStatus
 }) => {
   const statusColor = getStatusColor(
     clockState.isRunning, 
@@ -243,6 +245,26 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
             {ntpSyncStatus.enabled && ntpSyncStatus.syncCount > 0 && (
               <div className="text-blue-400 text-lg sm:text-xl md:text-2xl">
                 NTP Syncs: {ntpSyncStatus.syncCount} | Errors: {ntpSyncStatus.errorCount}
+              </div>
+            )}
+            {audioAlertStatus === 'warning-success' && (
+              <div className="text-green-400 text-lg sm:text-xl md:text-2xl">
+                10s warning sound played
+              </div>
+            )}
+            {audioAlertStatus === 'warning-fail' && (
+              <div className="text-red-400 text-lg sm:text-xl md:text-2xl">
+                Failed to play 10s warning sound
+              </div>
+            )}
+            {audioAlertStatus === 'end-success' && (
+              <div className="text-green-400 text-lg sm:text-xl md:text-2xl">
+                Final second sound played
+              </div>
+            )}
+            {audioAlertStatus === 'end-fail' && (
+              <div className="text-red-400 text-lg sm:text-xl md:text-2xl">
+                Failed to play final second sound
               </div>
             )}
           </div>

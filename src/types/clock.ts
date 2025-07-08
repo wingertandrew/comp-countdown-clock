@@ -19,6 +19,8 @@ export interface ClockState {
   ntpSyncInterval: number;
   ntpDriftThreshold: number;
   ntpOffset: number;
+  warningAudioPath?: string;
+  endAudioPath?: string;
   masterClockStartTime?: number;
   ntpTimestamp?: number | null;
   serverTime?: number;

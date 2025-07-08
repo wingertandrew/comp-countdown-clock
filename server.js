@@ -3,8 +3,10 @@ import http from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
 import dgram from 'dgram';
 import https from 'https';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -48,6 +50,18 @@ let ntpSyncTimer = null;
 // Track connected WebSocket clients
 const connectedClients = new Map();
 
+function getLocalIpAddress() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const interface of interfaces[name]) {
+      if (interface.family === 'IPv4' && !interface.internal) {
+        return interface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
 function normalizeIp(ip) {
   if (!ip) return '';
   if (ip.startsWith('::ffff:')) {
@@ -67,7 +81,6 @@ function broadcastClients() {
   }));
   broadcast({ type: 'clients', clients });
 }
-
 
 function queryNtpTime(server) {
   return new Promise((resolve, reject) => {
@@ -713,6 +726,53 @@ app.get('/api/status', (req, res) => {
     api_version: "1.0.0",
     connection_protocol: "http_rest_websocket"
   });
+});
+
+// Clock status endpoint for external integration
+app.get('/clock_status', (req, res) => {
+  const now = Date.now() + serverClockState.ntpOffset;
+  let status = 0; // 0 = stopped, 1 = running, 2 = paused, 3 = between rounds
+  let endTime = null;
+  let pauseTime = null;
+  
+  if (serverClockState.isBetweenRounds) {
+    status = 3;
+    const remainingBetweenRoundsTime = serverClockState.betweenRoundsTime - 
+      (serverClockState.betweenRoundsMinutes * 60 + serverClockState.betweenRoundsSeconds);
+    endTime = new Date(now + (remainingBetweenRoundsTime * 1000)).toISOString();
+  } else if (serverClockState.isPaused) {
+    status = 2;
+    pauseTime = serverClockState.pauseStartTime ? 
+      new Date(serverClockState.pauseStartTime).toISOString() : 
+      new Date(now).toISOString();
+    // Calculate end time if timer were to resume
+    const remainingTime = (serverClockState.minutes * 60) + serverClockState.seconds;
+    endTime = new Date(now + (remainingTime * 1000)).toISOString();
+  } else if (serverClockState.isRunning) {
+    status = 1;
+    const remainingTime = (serverClockState.minutes * 60) + serverClockState.seconds;
+    endTime = new Date(now + (remainingTime * 1000)).toISOString();
+  } else {
+    status = 0;
+    const totalTime = (serverClockState.minutes * 60) + serverClockState.seconds;
+    endTime = new Date(now + (totalTime * 1000)).toISOString();
+  }
+  
+  // Format clock time as M:SS
+  const clockTime = serverClockState.isBetweenRounds ? 
+    `${serverClockState.betweenRoundsMinutes}:${serverClockState.betweenRoundsSeconds.toString().padStart(2, '0')}` :
+    `${serverClockState.minutes}:${serverClockState.seconds.toString().padStart(2, '0')}`;
+  
+  const response = {
+    status,
+    endTime,
+    pauseTime,
+    localIpAddress: getLocalIpAddress(),
+    clockTime,
+    timeStamp: new Date(now).toISOString()
+  };
+  
+  res.json(response);
 });
 
 // Enhanced API documentation endpoint

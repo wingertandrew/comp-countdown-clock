@@ -31,7 +31,7 @@ npm install
 npm run dev
 ```
 
-The application will be available at `http://localhost:8080`
+The application will be available at `http://localhost:4040`
 
 ### Development on macOS
 1. Install Node.js via [Homebrew](https://brew.sh/) with `brew install node` or download it from the official website.
@@ -60,30 +60,30 @@ The application will be available at `http://localhost:8080`
 
 ## HTTP API Reference
 
-Base URL: `http://<device-ip>:8080/api` (use `localhost` when developing on macOS)
+Base URL: `http://<device-ip>:4040/api` (use `localhost` when developing on macOS)
 
 ### Timer Controls
 ```bash
 # Start timer
-curl -X POST http://localhost:8080/api/start
+curl -X POST http://localhost:4040/api/start
 
 # Pause/Resume timer
-curl -X POST http://localhost:8080/api/pause
+curl -X POST http://localhost:4040/api/pause
 
 # Reset timer
-curl -X POST http://localhost:8080/api/reset
+curl -X POST http://localhost:4040/api/reset
 
 # Reset only the timer
-curl -X POST http://localhost:8080/api/reset-time
+curl -X POST http://localhost:4040/api/reset-time
 
 # Reset timer and round count
-curl -X POST http://localhost:8080/api/reset-rounds
+curl -X POST http://localhost:4040/api/reset-rounds
 
 # Next round
-curl -X POST http://localhost:8080/api/next-round
+curl -X POST http://localhost:4040/api/next-round
 
 # Previous round
-curl -X POST http://localhost:8080/api/previous-round
+curl -X POST http://localhost:4040/api/previous-round
 ```
 
 All of the above control endpoints immediately broadcast the updated timer
@@ -92,17 +92,17 @@ All of the above control endpoints immediately broadcast the updated timer
 ### Configuration
 ```bash
 # Set timer duration
-curl -X POST http://localhost:8080/api/set-time \
+curl -X POST http://localhost:4040/api/set-time \
   -H "Content-Type: application/json" \
   -d '{"minutes": 5, "seconds": 30}'
 
 # Set number of rounds
-curl -X POST http://localhost:8080/api/set-rounds \
+curl -X POST http://localhost:4040/api/set-rounds \
   -H "Content-Type: application/json" \
   -d '{"rounds": 10}'
 
 # Set between-rounds timer
-curl -X POST http://localhost:8080/api/set-between-rounds \
+curl -X POST http://localhost:4040/api/set-between-rounds \
   -H "Content-Type: application/json" \
   -d '{"enabled": true, "time": 60}'
 ```
@@ -110,13 +110,13 @@ curl -X POST http://localhost:8080/api/set-between-rounds \
 ### Status
 ```bash
 # Get current status
-curl http://localhost:8080/api/status
+curl http://localhost:4040/api/status
 ```
 
 ### NTP Sync
 ```bash
 # Sync time using the default server (time.google.com)
-curl http://localhost:8080/api/ntp-sync
+curl http://localhost:4040/api/ntp-sync
 ```
 
 If the UDP request to the NTP server fails (for example when port 123 is
@@ -126,7 +126,7 @@ blocked), the server automatically falls back to
 ### API Docs
 ```bash
 # Open interactive documentation
-curl http://localhost:8080/api/docs
+curl http://localhost:4040/api/docs
 
 ## Stream Deck Integration
 
@@ -137,15 +137,15 @@ Bitfocus Companion is free control software for the Elgato Stream Deck. Use it t
 1. Install [Bitfocus Companion](https://bitfocus.io/companion) and open the web interface.
 2. In the **Connections** tab add the **HTTP Request** module.
 3. Create a button and add an **HTTP Request** action.
-4. Enter a URL like `http://localhost:8080/api/start` (replace `start` with the desired command).
+4. Enter a URL like `http://localhost:4040/api/start` (replace `start` with the desired command).
 5. Set the method to `POST` for controls or `GET` for `/api/status`.
 6. Use `localhost` when developing or the clock's IP address on your network.
-7. Keep the port `8080` unless you changed it in `server.js`.
+7. Keep the port `4040` unless you changed it in `server.js`.
 8. Test each button in Companion's emulator before deploying.
 
 For best results, create separate buttons for `start`, `pause`, `reset-rounds`, `next-round` and `previous-round`. Companion sends the HTTP calls directly to the application, and connected clients stay in sync through WebSocket.
 
-You can also add an HTTP Feedback in Companion to poll `http://localhost:8080/api/status` every second and show the current `minutes`, `seconds`, or `round` fields directly on your Stream Deck keys. Combine feedback variables with button styles to change text or colors as the timer updates.
+You can also add an HTTP Feedback in Companion to poll `http://localhost:4040/api/status` every second and show the current `minutes`, `seconds`, or `round` fields directly on your Stream Deck keys. Combine feedback variables with button styles to change text or colors as the timer updates.
 
 
 ### Example Stream Deck Layout

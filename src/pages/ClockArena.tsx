@@ -33,7 +33,7 @@ const ClockArena = () => {
     const connectWebSocket = () => {
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port || 8080}/ws`);
+        const ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port || 4040}/ws`);
 
         ws.onmessage = (event) => {
           try {

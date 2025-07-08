@@ -26,13 +26,13 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
             <ul className="list-disc list-inside mt-4 space-y-3">
               <li>
                 <code className="bg-gray-900 px-4 py-2 rounded text-lg text-green-400">
-                  http://{ipAddress}:{window.location.port || 8080}
+                  http://{ipAddress}:{window.location.port || 4040}
                 </code>
               </li>
               {ipAddress !== 'localhost' && (
                 <li>
                   <code className="bg-gray-900 px-4 py-2 rounded text-lg text-green-400">
-                    http://localhost:{window.location.port || 8080}
+                    http://localhost:{window.location.port || 4040}
                   </code>
                 </li>
               )}
@@ -193,13 +193,13 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                 <div>
                   <h4 className="text-xl font-bold text-white mb-3">HTTP REST API</h4>
                   <p className="text-gray-300 mb-2">Standard HTTP requests for control and status</p>
-                  <code className="bg-gray-900 px-2 py-1 rounded">Base URL: http://{ipAddress}:{window.location.port || 8080}/api</code>
+                  <code className="bg-gray-900 px-2 py-1 rounded">Base URL: http://{ipAddress}:{window.location.port || 4040}/api</code>
                 </div>
                 
                 <div>
                   <h4 className="text-xl font-bold text-white mb-3">WebSocket Real-time</h4>
                   <p className="text-gray-300 mb-2">Live updates and bidirectional communication</p>
-                  <code className="bg-gray-900 px-2 py-1 rounded">WS URL: ws://{ipAddress}:{window.location.port || 8080}/ws</code>
+                  <code className="bg-gray-900 px-2 py-1 rounded">WS URL: ws://{ipAddress}:{window.location.port || 4040}/ws</code>
                 </div>
 
                 <div className="mt-6 p-4 bg-gray-800 rounded-lg">
@@ -222,7 +222,7 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                 <ul className="list-disc list-inside space-y-3 text-gray-300">
                   <li className="text-lg">Use "Generic HTTP" module in Companion</li>
                   <li className="text-lg">Set target IP to your Pi's address: <code className="bg-gray-900 px-2 py-1 rounded">{ipAddress}</code></li>
-                  <li className="text-lg">Use port: <code className="bg-gray-900 px-2 py-1 rounded">{window.location.port || 8080}</code></li>
+                  <li className="text-lg">Use port: <code className="bg-gray-900 px-2 py-1 rounded">{window.location.port || 4040}</code></li>
                   <li className="text-lg">Set method to POST for timer controls</li>
                   <li className="text-lg">Use GET for status checks and feedback</li>
                 </ul>
@@ -230,7 +230,7 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                 <div className="mt-6 p-4 bg-gray-800 rounded-lg">
                   <h4 className="text-xl font-bold text-white mb-3">Example Companion Setup:</h4>
                   <div className="space-y-2 text-gray-300">
-                    <div><strong>Base URL:</strong> <code className="bg-gray-900 px-2 py-1 rounded">http://{ipAddress}:{window.location.port || 8080}</code></div>
+                    <div><strong>Base URL:</strong> <code className="bg-gray-900 px-2 py-1 rounded">http://{ipAddress}:{window.location.port || 4040}</code></div>
                     <div><strong>Start Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/start</code></div>
                     <div><strong>Pause Button:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/pause</code></div>
                     <div><strong>Reset All:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/reset</code></div>

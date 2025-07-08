@@ -46,6 +46,8 @@ const CountdownClock = () => {
   const [ntpSyncEnabled, setNtpSyncEnabled] = useState(false);
   const [ntpSyncInterval, setNtpSyncInterval] = useState(21600000); // 6 hours default
   const [ntpDriftThreshold, setNtpDriftThreshold] = useState(50);
+  const [warningAudioPath, setWarningAudioPath] = useState('');
+  const [endAudioPath, setEndAudioPath] = useState('');
   const [ntpSyncStatus, setNtpSyncStatus] = useState<NTPSyncStatus>({
     enabled: false,
     lastSync: 0,
@@ -62,6 +64,8 @@ const CountdownClock = () => {
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const ntpManagerRef = useRef<NTPSyncManager | null>(null);
+  const warningAudioRef = useRef<HTMLAudioElement | null>(null);
+  const endAudioRef = useRef<HTMLAudioElement | null>(null);
   
   const { addDebugLog, ...debugLogProps } = useDebugLog();
 
@@ -234,6 +238,39 @@ const CountdownClock = () => {
       setNtpSyncStatus(prev => ({ ...prev, enabled: false }));
     }
   }, [ntpSyncEnabled, ntpSyncInterval, ntpDriftThreshold]);
+
+  // Load audio sources when paths change
+  useEffect(() => {
+    warningAudioRef.current = warningAudioPath ? new Audio(warningAudioPath) : null;
+  }, [warningAudioPath]);
+
+  useEffect(() => {
+    endAudioRef.current = endAudioPath ? new Audio(endAudioPath) : null;
+  }, [endAudioPath]);
+
+  // Play warning and end sounds at specific times
+  useEffect(() => {
+    if (
+      clockState.isRunning &&
+      !clockState.isPaused &&
+      !clockState.isBetweenRounds
+    ) {
+      if (
+        clockState.minutes === 0 &&
+        clockState.seconds === 10 &&
+        warningAudioRef.current
+      ) {
+        warningAudioRef.current.play().catch(() => {});
+      }
+      if (
+        clockState.minutes === 0 &&
+        clockState.seconds === 0 &&
+        endAudioRef.current
+      ) {
+        endAudioRef.current.play().catch(() => {});
+      }
+    }
+  }, [clockState.minutes, clockState.seconds, clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds]);
 
   const handleExternalCommand = (command: any) => {
     addDebugLog('API', 'External command received', command);
@@ -545,6 +582,8 @@ const CountdownClock = () => {
             ntpSyncEnabled={ntpSyncEnabled}
             ntpSyncInterval={ntpSyncInterval}
             ntpDriftThreshold={ntpDriftThreshold}
+            warningSoundPath={warningAudioPath}
+            endSoundPath={endAudioPath}
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}
@@ -553,6 +592,8 @@ const CountdownClock = () => {
             setNtpSyncEnabled={setNtpSyncEnabled}
             setNtpSyncInterval={setNtpSyncInterval}
             setNtpDriftThreshold={setNtpDriftThreshold}
+            setWarningSoundPath={setWarningAudioPath}
+            setEndSoundPath={setEndAudioPath}
             onApplySettings={applySettings}
           />
         </TabsContent>

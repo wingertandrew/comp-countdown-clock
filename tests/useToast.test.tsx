@@ -9,13 +9,18 @@ function Wrapper() {
 
 describe('useToast listeners', () => {
   test('multiple renders do not add duplicate listeners', () => {
-    const renderer = TestRenderer.create(<Wrapper />);
+    let renderer: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<Wrapper />);
+    });
     expect(_listeners.length).toBe(1);
     act(() => {
       renderer.update(<Wrapper />);
     });
     expect(_listeners.length).toBe(1);
-    renderer.unmount();
+    act(() => {
+      renderer.unmount();
+    });
     expect(_listeners.length).toBe(0);
   });
 });

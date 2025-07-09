@@ -48,6 +48,8 @@ const CountdownClock = () => {
   const [ntpDriftThreshold, setNtpDriftThreshold] = useState(50);
   const [warningAudioPath, setWarningAudioPath] = useState('');
   const [endAudioPath, setEndAudioPath] = useState('');
+  const [warningAudioFile, setWarningAudioFile] = useState<File | null>(null);
+  const [endAudioFile, setEndAudioFile] = useState<File | null>(null);
   const [audioAlertStatus, setAudioAlertStatus] = useState<string | null>(null);
   const [audioAlertsPlayedThisRound, setAudioAlertsPlayedThisRound] = useState<Set<string>>(new Set());
   const [ntpSyncStatus, setNtpSyncStatus] = useState<NTPSyncStatus>({
@@ -71,14 +73,39 @@ const CountdownClock = () => {
 
   const { addDebugLog, ...debugLogProps } = useDebugLog();
 
-  // Load saved audio paths from localStorage on first render
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const warn = localStorage.getItem('warningSoundPath');
-    const end = localStorage.getItem('endSoundPath');
-    if (warn) setWarningAudioPath(warn);
-    if (end) setEndAudioPath(end);
-  }, []);
+// Load audio paths from server or fallback to localStorage
+useEffect(() => {
+  const loadAudioPaths = async () => {
+    try {
+      const res = await fetch('/api/audio');
+      const data = await res.json();
+
+      if (data.warningSoundPath) {
+        setWarningAudioPath(data.warningSoundPath);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('warningSoundPath', data.warningSoundPath);
+        }
+      }
+
+      if (data.endSoundPath) {
+        setEndAudioPath(data.endSoundPath);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('endSoundPath', data.endSoundPath);
+        }
+      }
+    } catch {
+      if (typeof window !== 'undefined') {
+        const warn = localStorage.getItem('warningSoundPath');
+        const end = localStorage.getItem('endSoundPath');
+        if (warn) setWarningAudioPath(warn);
+        if (end) setEndAudioPath(end);
+      }
+    }
+  };
+
+  loadAudioPaths();
+}, []);
+
 
   // Get local IP address for display
   useEffect(() => {
@@ -582,9 +609,45 @@ const CountdownClock = () => {
       addDebugLog('UI', 'Failed to sync settings with server', { error: error.message });
     }
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('warningSoundPath', warningAudioPath);
-      localStorage.setItem('endSoundPath', endAudioPath);
+if (warningAudioFile) {
+  const data = new FormData();
+  data.append('audio', warningAudioFile);
+  try {
+    const res = await fetch('/api/upload-audio/warning', {
+      method: 'POST',
+      body: data
+    });
+    if (res.ok) {
+      const json = await res.json();
+      setWarningAudioPath(json.path);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('warningSoundPath', json.path);
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+if (endAudioFile) {
+  const data = new FormData();
+  data.append('audio', endAudioFile);
+  try {
+    const res = await fetch('/api/upload-audio/end', {
+      method: 'POST',
+      body: data
+    });
+    if (res.ok) {
+      const json = await res.json();
+      setEndAudioPath(json.path);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('endSoundPath', json.path);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  
     }
 
     setActiveTab('clock');
@@ -656,6 +719,8 @@ const CountdownClock = () => {
             ntpDriftThreshold={ntpDriftThreshold}
             warningSoundPath={warningAudioPath}
             endSoundPath={endAudioPath}
+            setWarningSoundFile={setWarningAudioFile}
+            setEndSoundFile={setEndAudioFile}
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}

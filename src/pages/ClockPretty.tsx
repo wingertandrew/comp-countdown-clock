@@ -16,6 +16,8 @@ interface ClockData {
   betweenRoundsMinutes: number;
   betweenRoundsSeconds: number;
   ntpOffset?: number;
+  warningSoundPath?: string;
+  endSoundPath?: string;
 }
 
 const ClockPretty = () => {
@@ -40,13 +42,27 @@ const ClockPretty = () => {
   const [endSoundPath, setEndSoundPath] = useState<string | null>(null);
   const warningAudioRef = useRef<HTMLAudioElement | null>(null);
   const endAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+useEffect(() => {
+  const loadAudioPaths = async () => {
+    try {
+      const res = await fetch('/api/audio');
+      const data = await res.json();
+      if (data.warningSoundPath) setWarningSoundPath(data.warningSoundPath);
+      if (data.endSoundPath) setEndSoundPath(data.endSoundPath);
+    } catch {
+      if (typeof window !== 'undefined') {
+        const localWarning = localStorage.getItem('warningSoundPath');
+        const localEnd = localStorage.getItem('endSoundPath');
+        if (localWarning) setWarningSoundPath(localWarning);
+        if (localEnd) setEndSoundPath(localEnd);
+      }
+    }
+  };
 
-  // Load audio paths from localStorage
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    setWarningSoundPath(localStorage.getItem('warningSoundPath'));
-    setEndSoundPath(localStorage.getItem('endSoundPath'));
-  }, []);
+  loadAudioPaths();
+}, []);
+
 
   // Update audio refs when paths change
   useEffect(() => {
@@ -69,6 +85,8 @@ const ClockPretty = () => {
             const data = JSON.parse(event.data);
             if (data.type === 'status') {
               setClockData(data);
+              if (data.warningSoundPath) setWarningSoundPath(data.warningSoundPath);
+              if (data.endSoundPath) setEndSoundPath(data.endSoundPath);
             }
           } catch (error) {
             console.error('Invalid WebSocket message:', error);

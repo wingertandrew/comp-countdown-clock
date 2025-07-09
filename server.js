@@ -4,8 +4,10 @@ import WebSocket, { WebSocketServer } from 'ws';
 import dgram from 'dgram';
 import https from 'https';
 import os from 'os';
+import fs from 'fs';
+import multer from 'multer';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, extname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,6 +17,19 @@ app.use(express.json());
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+
+// Audio uploads
+const uploadsDir = join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+app.use('/uploads', express.static(uploadsDir));
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => cb(null, `${Date.now()}${extname(file.originalname)}`)
+});
+const upload = multer({ storage });
 
 // Server-side clock state
 let serverClockState = {
@@ -36,6 +51,8 @@ let serverClockState = {
   startTime: { minutes: 5, seconds: 0 },
   betweenRoundsEnabled: true,
   betweenRoundsTime: 60,
+  warningSoundPath: null,
+  endSoundPath: null,
   lastUpdateTime: Date.now(),
   ntpTimestamp: null,
   ntpSyncEnabled: false,
@@ -704,6 +721,28 @@ app.post('/api/remove-second', (_req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/upload-audio/:type', upload.single('audio'), (req, res) => {
+  const { type } = req.params;
+  if (!req.file || (type !== 'warning' && type !== 'end')) {
+    return res.status(400).json({ error: 'Invalid audio upload' });
+  }
+  const url = `/uploads/${req.file.filename}`;
+  if (type === 'warning') {
+    serverClockState.warningSoundPath = url;
+  } else {
+    serverClockState.endSoundPath = url;
+  }
+  broadcast({ type: 'status', ...serverClockState });
+  res.json({ success: true, path: url });
+});
+
+app.get('/api/audio', (_req, res) => {
+  res.json({
+    warningSoundPath: serverClockState.warningSoundPath,
+    endSoundPath: serverClockState.endSoundPath
+  });
+});
+
 app.get('/api/ntp-sync', async (req, res) => {
   if (req.query.server) {
     process.env.NTP_SERVER = String(req.query.server);
@@ -840,6 +879,10 @@ app.get('/api/docs', (req, res) => {
         "POST /api/set-ntp-sync": {
           description: "Configure NTP sync settings",
           body: { enabled: "boolean", interval: "number (seconds)", driftThreshold: "number (milliseconds)" }
+        },
+        "POST /api/upload-audio/{warning|end}": {
+          description: "Upload audio alert files",
+          body: { audio: "multipart/form-data" }
         }
       },
       status: {
@@ -868,7 +911,8 @@ app.get('/api/docs', (req, res) => {
             api_version: "API version",
             connection_protocol: "Supported protocols"
           }
-        }
+        },
+        "GET /api/audio": "Get current audio file URLs"
       },
       display: {
         "GET /clockpretty": "Beautiful dark dashboard display (read-only)",

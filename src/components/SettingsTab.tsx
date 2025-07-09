@@ -287,6 +287,20 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                   onChange={(e) => setWarningSoundPath(e.target.value)}
                   className="bg-gray-700 border-gray-500 text-white rounded-xl"
                 />
+                <Input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () =>
+                        setWarningSoundPath(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="bg-gray-700 border-gray-500 text-white rounded-xl p-2"
+                />
               </div>
               <div className="flex flex-col space-y-4">
                 <label className="block text-xl font-medium text-white">
@@ -297,6 +311,20 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                   value={endSoundPath}
                   onChange={(e) => setEndSoundPath(e.target.value)}
                   className="bg-gray-700 border-gray-500 text-white rounded-xl"
+                />
+                <Input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () =>
+                        setEndSoundPath(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="bg-gray-700 border-gray-500 text-white rounded-xl p-2"
                 />
               </div>
             </CardContent>

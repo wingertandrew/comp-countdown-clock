@@ -49,6 +49,7 @@ const CountdownClock = () => {
   const [warningAudioPath, setWarningAudioPath] = useState('');
   const [endAudioPath, setEndAudioPath] = useState('');
   const [audioAlertStatus, setAudioAlertStatus] = useState<string | null>(null);
+  const [audioAlertsPlayedThisRound, setAudioAlertsPlayedThisRound] = useState<Set<string>>(new Set());
   const [ntpSyncStatus, setNtpSyncStatus] = useState<NTPSyncStatus>({
     enabled: false,
     lastSync: 0,
@@ -152,7 +153,6 @@ const CountdownClock = () => {
               addDebugLog('WEBSOCKET', 'Connected clients updated', { count: data.clients?.length || 0 });
             } else if (data.type === 'clock_status_visitors') {
               setClockStatusVisitors(data.visitors || []);
-// clean result – no log
             } else if (data.type === 'request-hostname') {
               ws.send(
                 JSON.stringify({
@@ -261,16 +261,24 @@ const CountdownClock = () => {
   const playAudio = async (
     ref: React.RefObject<HTMLAudioElement | null>,
     successKey: string,
-    failKey: string
+    failKey: string,
+    alertType: string
   ) => {
-    if (!ref.current) return;
+    if (!ref.current || audioAlertsPlayedThisRound.has(alertType)) return;
     try {
       await ref.current.play();
       setAudioAlertStatus(successKey);
+      setAudioAlertsPlayedThisRound(prev => new Set([...prev, alertType]));
     } catch {
       setAudioAlertStatus(failKey);
+      setAudioAlertsPlayedThisRound(prev => new Set([...prev, alertType]));
     }
-    setTimeout(() => setAudioAlertStatus(null), 2000);
+  };
+
+  // Clear audio alerts when round changes or timer resets
+  const clearAudioAlerts = () => {
+    setAudioAlertStatus(null);
+    setAudioAlertsPlayedThisRound(new Set());
   };
 
   // Play warning and end sounds at specific times
@@ -280,22 +288,24 @@ const CountdownClock = () => {
       !clockState.isPaused &&
       !clockState.isBetweenRounds
     ) {
+      // Play warning sound at 11 seconds remaining
       if (
         clockState.minutes === 0 &&
-        clockState.seconds === 10 &&
+        clockState.seconds === 11 &&
         warningAudioRef.current
       ) {
-        playAudio(warningAudioRef, 'warning-success', 'warning-fail');
+        playAudio(warningAudioRef, 'warning-success', 'warning-fail', 'warning');
       }
+      // Play end sound at 1 second remaining
       if (
         clockState.minutes === 0 &&
-        clockState.seconds === 0 &&
+        clockState.seconds === 1 &&
         endAudioRef.current
       ) {
-        playAudio(endAudioRef, 'end-success', 'end-fail');
+        playAudio(endAudioRef, 'end-success', 'end-fail', 'end');
       }
     }
-  }, [clockState.minutes, clockState.seconds, clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds]);
+  }, [clockState.minutes, clockState.seconds, clockState.isRunning, clockState.isPaused, clockState.isBetweenRounds, audioAlertsPlayedThisRound]);
 
   const handleExternalCommand = (command: any) => {
     addDebugLog('API', 'External command received', command);
@@ -308,12 +318,15 @@ const CountdownClock = () => {
         break;
       case 'reset':
         toast({ title: 'Timer Reset' });
+        clearAudioAlerts();
         break;
       case 'reset-time':
         toast({ title: 'Time Reset' });
+        clearAudioAlerts();
         break;
       case 'reset-rounds':
         toast({ title: 'Rounds Reset' });
+        clearAudioAlerts();
         break;
       case 'set-time':
         setInitialTime({ minutes: command.minutes, seconds: command.seconds });
@@ -323,12 +336,15 @@ const CountdownClock = () => {
           seconds: command.seconds
         }));
         toast({ title: 'Time Set' });
+        clearAudioAlerts();
         break;
       case 'next-round':
         toast({ title: `Round ${clockState.currentRound + 1} Started` });
+        clearAudioAlerts();
         break;
       case 'previous-round':
         toast({ title: `Round ${clockState.currentRound - 1} Started` });
+        clearAudioAlerts();
         break;
       case 'adjust-time':
         break;
@@ -370,6 +386,7 @@ const CountdownClock = () => {
       const response = await fetch('/api/reset-time', { method: 'POST' });
       if (response.ok) {
         addDebugLog('UI', 'Time reset via API');
+        clearAudioAlerts();
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to reset time', { error: error.message });
@@ -381,6 +398,7 @@ const CountdownClock = () => {
       const response = await fetch('/api/reset-rounds', { method: 'POST' });
       if (response.ok) {
         addDebugLog('UI', 'Rounds reset via API');
+        clearAudioAlerts();
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to reset rounds', { error: error.message });
@@ -406,6 +424,7 @@ const CountdownClock = () => {
           addDebugLog('UI', 'Next round via API', {
             round: clockState.currentRound + 1
           });
+          clearAudioAlerts();
         }
       } catch (error) {
         addDebugLog('UI', 'Failed to advance round', { error: error.message });
@@ -442,6 +461,7 @@ const CountdownClock = () => {
         isBetweenRounds: false
       }));
       addDebugLog('UI', 'Previous round', { round: newRound });
+      clearAudioAlerts();
     }
   };
 
@@ -483,6 +503,7 @@ const CountdownClock = () => {
           seconds: validSeconds
         }));
         addDebugLog('UI', 'Time set via API', { minutes: validMinutes, seconds: validSeconds });
+        clearAudioAlerts();
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to set time', { error: error.message });

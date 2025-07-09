@@ -85,7 +85,7 @@ function broadcastClients() {
     id: c.id,
     ip: c.ip,
     url: c.url,
-    hostname: c.hostname, // kept from `37rtxh-codex/set-default-ntp-sync-to-30-minutes`
+    hostname: c.hostname,
     connectedAt: c.connectedAt
   }));
   broadcast({ type: 'clients', clients });
@@ -742,11 +742,11 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Clock status endpoint for external integration
+// Clock status endpoint for external integration - REMOVED broadcastClockStatusVisitors call
 app.get('/clock_status', (req, res) => {
   const visitorIp = normalizeIp(req.ip);
   clockStatusVisitors.set(visitorIp, Date.now() + serverClockState.ntpOffset);
-  broadcastClockStatusVisitors();
+  // REMOVED: broadcastClockStatusVisitors(); // This was causing terminal spam
 
   const now = Date.now() + serverClockState.ntpOffset;
   let status = 0; // 0 = stopped, 1 = running, 2 = paused, 3 = between rounds

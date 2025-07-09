@@ -273,27 +273,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           </Card>
 
           {/* Audio Alert Settings */}
-          <Card className="bg-gray-700 border-gray-500">
-            <CardHeader>
-              <CardTitle className="text-2xl text-white flex items-center gap-3">
-                <Volume2 className="w-8 h-8" />
-                Audio Alerts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col space-y-4">
-                <label className="block text-xl font-medium text-white">
-                  10s Warning Sound
-                </label>
-                <Input
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] || null;
-                    setWarningSoundFile(f);
-                    if (f) setWarningSoundPath(f.name);
-                  }}
-                  className="bg-gray-700 border-gray-500 text-white rounded-xl"
 <Card className="bg-gray-700 border-gray-500">
   <CardHeader>
     <CardTitle className="text-2xl text-white flex items-center gap-3">
@@ -367,10 +346,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 
   </CardContent>
 </Card>
-
-              </div>
-            </CardContent>
-          </Card>
 
           <Button
             onClick={onApplySettings}

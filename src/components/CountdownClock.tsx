@@ -48,6 +48,8 @@ const CountdownClock = () => {
   const [ntpDriftThreshold, setNtpDriftThreshold] = useState(50);
   const [warningAudioPath, setWarningAudioPath] = useState('');
   const [endAudioPath, setEndAudioPath] = useState('');
+  const [warningAudioFile, setWarningAudioFile] = useState<File | null>(null);
+  const [endAudioFile, setEndAudioFile] = useState<File | null>(null);
   const [audioAlertStatus, setAudioAlertStatus] = useState<string | null>(null);
   const [ntpSyncStatus, setNtpSyncStatus] = useState<NTPSyncStatus>({
     enabled: false,
@@ -67,8 +69,21 @@ const CountdownClock = () => {
   const ntpManagerRef = useRef<NTPSyncManager | null>(null);
   const warningAudioRef = useRef<HTMLAudioElement | null>(null);
   const endAudioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   const { addDebugLog, ...debugLogProps } = useDebugLog();
+
+  // Load audio paths from server on first render
+  useEffect(() => {
+    fetch('/api/audio')
+      .then(res => res.json())
+      .then(data => {
+        if (data.warningSoundPath) setWarningAudioPath(data.warningSoundPath);
+        if (data.endSoundPath) setEndAudioPath(data.endSoundPath);
+      })
+      .catch(() => {
+        // ignore errors
+      });
+  }, []);
 
   // Get local IP address for display
   useEffect(() => {
@@ -531,7 +546,41 @@ const CountdownClock = () => {
     } catch (error) {
       addDebugLog('UI', 'Failed to sync settings with server', { error: error.message });
     }
-    
+
+    if (warningAudioFile) {
+      const data = new FormData();
+      data.append('audio', warningAudioFile);
+      try {
+        const res = await fetch('/api/upload-audio/warning', {
+          method: 'POST',
+          body: data
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setWarningAudioPath(json.path);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (endAudioFile) {
+      const data = new FormData();
+      data.append('audio', endAudioFile);
+      try {
+        const res = await fetch('/api/upload-audio/end', {
+          method: 'POST',
+          body: data
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setEndAudioPath(json.path);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     setActiveTab('clock');
     toast({ title: "Settings Applied" });
   };
@@ -601,6 +650,8 @@ const CountdownClock = () => {
             ntpDriftThreshold={ntpDriftThreshold}
             warningSoundPath={warningAudioPath}
             endSoundPath={endAudioPath}
+            setWarningSoundFile={setWarningAudioFile}
+            setEndSoundFile={setEndAudioFile}
             setInputMinutes={setInputMinutes}
             setInputSeconds={setInputSeconds}
             setInputRounds={setInputRounds}

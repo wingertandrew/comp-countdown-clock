@@ -17,6 +17,8 @@ interface SettingsTabProps {
   ntpDriftThreshold: number;
   warningSoundPath: string;
   endSoundPath: string;
+  setWarningSoundFile: (file: File | null) => void;
+  setEndSoundFile: (file: File | null) => void;
   setInputMinutes: (value: number) => void;
   setInputSeconds: (value: number) => void;
   setInputRounds: (value: number) => void;
@@ -41,6 +43,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   ntpDriftThreshold,
   warningSoundPath,
   endSoundPath,
+  setWarningSoundFile,
+  setEndSoundFile,
   setInputMinutes,
   setInputSeconds,
   setInputRounds,
@@ -279,25 +283,39 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             <CardContent className="space-y-6">
               <div className="flex flex-col space-y-4">
                 <label className="block text-xl font-medium text-white">
-                  10s Warning Sound Path
+                  10s Warning Sound
                 </label>
                 <Input
-                  type="text"
-                  value={warningSoundPath}
-                  onChange={(e) => setWarningSoundPath(e.target.value)}
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setWarningSoundFile(f);
+                    if (f) setWarningSoundPath(f.name);
+                  }}
                   className="bg-gray-700 border-gray-500 text-white rounded-xl"
                 />
+                {warningSoundPath && (
+                  <p className="text-sm text-gray-400">Current: {warningSoundPath}</p>
+                )}
               </div>
               <div className="flex flex-col space-y-4">
                 <label className="block text-xl font-medium text-white">
-                  Final Second Sound Path
+                  Final Second Sound
                 </label>
                 <Input
-                  type="text"
-                  value={endSoundPath}
-                  onChange={(e) => setEndSoundPath(e.target.value)}
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setEndSoundFile(f);
+                    if (f) setEndSoundPath(f.name);
+                  }}
                   className="bg-gray-700 border-gray-500 text-white rounded-xl"
                 />
+                {endSoundPath && (
+                  <p className="text-sm text-gray-400">Current: {endSoundPath}</p>
+                )}
               </div>
             </CardContent>
           </Card>

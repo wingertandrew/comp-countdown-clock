@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface ClockData {
   minutes: number;
@@ -12,6 +12,8 @@ interface ClockData {
   betweenRoundsMinutes: number;
   betweenRoundsSeconds: number;
   ntpOffset?: number;
+  warningSoundPath?: string;
+  endSoundPath?: string;
 }
 
 const ClockArena = () => {
@@ -28,6 +30,31 @@ const ClockArena = () => {
     ntpOffset: 0
   });
 
+  const [warningSoundPath, setWarningSoundPath] = useState<string | null>(null);
+  const [endSoundPath, setEndSoundPath] = useState<string | null>(null);
+  const warningAudioRef = useRef<HTMLAudioElement | null>(null);
+  const endAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Load audio paths from server
+  useEffect(() => {
+    fetch('/api/audio')
+      .then(res => res.json())
+      .then(data => {
+        setWarningSoundPath(data.warningSoundPath);
+        setEndSoundPath(data.endSoundPath);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Update audio refs when paths change
+  useEffect(() => {
+    warningAudioRef.current = warningSoundPath ? new Audio(warningSoundPath) : null;
+  }, [warningSoundPath]);
+
+  useEffect(() => {
+    endAudioRef.current = endSoundPath ? new Audio(endSoundPath) : null;
+  }, [endSoundPath]);
+
   useEffect(() => {
     // Connect to WebSocket for real-time updates
     const connectWebSocket = () => {
@@ -40,6 +67,8 @@ const ClockArena = () => {
             const data = JSON.parse(event.data);
             if (data.type === 'status') {
               setClockData(data);
+              if (data.warningSoundPath) setWarningSoundPath(data.warningSoundPath);
+              if (data.endSoundPath) setEndSoundPath(data.endSoundPath);
             }
           } catch (error) {
             console.error('Invalid WebSocket message:', error);
@@ -82,6 +111,31 @@ const ClockArena = () => {
   const getRoundColor = () => {
     return clockData.isRunning ? 'text-blue-400' : 'text-gray-400';
   };
+
+  const playAudio = async (ref: React.RefObject<HTMLAudioElement | null>) => {
+    if (!ref.current) return;
+    try {
+      await ref.current.play();
+    } catch {
+      // ignore playback errors
+    }
+  };
+
+  // Play audio at 10s warning and end
+  useEffect(() => {
+    if (
+      clockData.isRunning &&
+      !clockData.isPaused &&
+      !clockData.isBetweenRounds
+    ) {
+      if (clockData.minutes === 0 && clockData.seconds === 10 && warningAudioRef.current) {
+        playAudio(warningAudioRef);
+      }
+      if (clockData.minutes === 0 && clockData.seconds === 0 && endAudioRef.current) {
+        playAudio(endAudioRef);
+      }
+    }
+  }, [clockData.minutes, clockData.seconds, clockData.isRunning, clockData.isPaused, clockData.isBetweenRounds]);
 
   return (
     <div className="min-h-screen bg-black text-white">

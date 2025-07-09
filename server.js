@@ -335,7 +335,6 @@ function updateServerClock() {
 }
 
 wss.on('connection', ws => {
-  console.log('New WebSocket connection established');
   const clientInfo = {
     id: Math.random().toString(36).slice(2),
     ip: normalizeIp(ws._socket.remoteAddress),

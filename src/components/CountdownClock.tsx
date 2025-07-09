@@ -93,13 +93,13 @@ const CountdownClock = () => {
           seconds
         }));
         setSettingsSynced(true);
-        addDebugLog('SETTINGS', 'Time auto-synced to server', { minutes, seconds });
+        addDebugLog('UI', 'Time auto-synced to server', { minutes, seconds });
         if (!silent) {
           toast({ title: 'Time settings synchronized' });
         }
       }
     } catch (error) {
-      addDebugLog('SETTINGS', 'Failed to auto-sync time', { error: error.message });
+      addDebugLog('UI', 'Failed to auto-sync time', { error: error.message });
       setSettingsSynced(false);
     }
   }, [addDebugLog, toast]);
@@ -221,7 +221,7 @@ useEffect(() => {
                 setInitialTime(data.initialTime);
                 setInputMinutes(data.initialTime.minutes);
                 setInputSeconds(data.initialTime.seconds);
-                addDebugLog('SETTINGS', 'Initial time synced from server', data.initialTime);
+                addDebugLog('UI', 'Initial time synced from server', data.initialTime);
               }
               if (typeof data.totalRounds === 'number') {
                 setInputRounds(data.totalRounds);

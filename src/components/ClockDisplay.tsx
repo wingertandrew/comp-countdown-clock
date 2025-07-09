@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, SkipForward, SkipBack, Plus, Minus, RotateCcw, History, Wifi, WifiOff } from 'lucide-react';
@@ -97,7 +98,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
         >
           <div className="flex flex-col items-center gap-2 sm:gap-3 text-black">
             <div className="flex items-center justify-center w-full">
-              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold">
                 <div className="flex items-center gap-2 sm:gap-3">
                   {clockState.isRunning && !clockState.isPaused ? (
                     <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] md:border-l-[20px] border-l-black border-t-[8px] sm:border-t-[10px] md:border-t-[12px] border-t-transparent border-b-[8px] sm:border-b-[10px] md:border-b-[12px] border-b-transparent"></div>
@@ -282,3 +283,4 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
 };
 
 export default ClockDisplay;
+

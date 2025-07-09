@@ -387,6 +387,14 @@ const CountdownClock = () => {
       if (response.ok) {
         addDebugLog('UI', 'Time reset via API');
         clearAudioAlerts();
+        // Immediately set local state to ensure neutral grey color
+        setClockState(prev => ({
+          ...prev,
+          isRunning: false,
+          isPaused: false,
+          minutes: initialTime.minutes,
+          seconds: initialTime.seconds
+        }));
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to reset time', { error: error.message });
@@ -399,6 +407,18 @@ const CountdownClock = () => {
       if (response.ok) {
         addDebugLog('UI', 'Rounds reset via API');
         clearAudioAlerts();
+        // Immediately set local state to ensure neutral grey color
+        setClockState(prev => ({
+          ...prev,
+          isRunning: false,
+          isPaused: false,
+          currentRound: 1,
+          minutes: initialTime.minutes,
+          seconds: initialTime.seconds,
+          elapsedMinutes: 0,
+          elapsedSeconds: 0,
+          isBetweenRounds: false
+        }));
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to reset rounds', { error: error.message });

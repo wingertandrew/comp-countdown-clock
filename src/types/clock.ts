@@ -28,12 +28,12 @@ export interface ClockState {
 
 export interface DebugLogEntry {
   timestamp: string;
-  source: 'UI' | 'API' | 'WEBSOCKET' | 'NTP';
+  source: 'UI' | 'API' | 'WEBSOCKET' | 'NTP' | 'ALERTS';
   action: string;
   details?: any;
 }
 
-export type DebugFilter = 'ALL' | 'UI' | 'API' | 'WEBSOCKET' | 'NTP';
+export type DebugFilter = 'ALL' | 'UI' | 'API' | 'WEBSOCKET' | 'NTP' | 'ALERTS';
 
 export interface NTPSyncStatus {
   enabled: boolean;

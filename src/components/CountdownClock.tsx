@@ -295,9 +295,11 @@ useEffect(() => {
     try {
       await ref.current.play();
       setAudioAlertStatus(successKey);
+      addDebugLog('ALERTS', `${alertType} sound played`);
       setAudioAlertsPlayedThisRound(prev => new Set([...prev, alertType]));
     } catch {
       setAudioAlertStatus(failKey);
+      addDebugLog('ALERTS', `${alertType} sound failed`);
       setAudioAlertsPlayedThisRound(prev => new Set([...prev, alertType]));
     }
   };

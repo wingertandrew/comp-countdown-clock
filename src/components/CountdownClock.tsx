@@ -106,6 +106,47 @@ useEffect(() => {
   loadAudioPaths();
 }, []);
 
+  // Load initial status from server
+  useEffect(() => {
+    const loadStatus = async () => {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        addDebugLog('API', 'Initial status loaded', data);
+
+        setClockState(prev => ({
+          ...prev,
+          ...data,
+          pauseStartTime: data.pauseStartTime
+        }));
+
+        if (data.initialTime) {
+          setInitialTime(data.initialTime);
+          setInputMinutes(data.initialTime.minutes);
+          setInputSeconds(data.initialTime.seconds);
+        } else {
+          if (typeof data.minutes === 'number') setInputMinutes(data.minutes);
+          if (typeof data.seconds === 'number') setInputSeconds(data.seconds);
+        }
+
+        if (typeof data.totalRounds === 'number') setInputRounds(data.totalRounds);
+        if (typeof data.betweenRoundsEnabled === 'boolean') setBetweenRoundsEnabled(data.betweenRoundsEnabled);
+        if (typeof data.betweenRoundsTime === 'number') setBetweenRoundsTime(data.betweenRoundsTime);
+        if (typeof data.ntpSyncEnabled === 'boolean') setNtpSyncEnabled(data.ntpSyncEnabled);
+        if (typeof data.ntpSyncInterval === 'number') setNtpSyncInterval(data.ntpSyncInterval);
+        if (typeof data.ntpDriftThreshold === 'number') setNtpDriftThreshold(data.ntpDriftThreshold);
+        if (typeof data.warningSoundPath === 'string') setWarningAudioPath(data.warningSoundPath);
+        if (typeof data.endSoundPath === 'string') setEndAudioPath(data.endSoundPath);
+      } catch (error: any) {
+        console.error('Failed to load status:', error);
+        addDebugLog('API', 'Failed to load status', { error: error.message });
+      }
+    };
+
+    loadStatus();
+  }, []);
+
 
   // Get local IP address for display
   useEffect(() => {
@@ -123,20 +164,16 @@ useEffect(() => {
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('WebSocket connected - syncing with server');
+          console.log('WebSocket connected');
           addDebugLog('WEBSOCKET', 'Connected to server', { endpoint: wsUrl });
-          
-          ws.send(JSON.stringify({
-            type: 'sync-settings',
-            url: window.location.href,
-            initialTime,
-            totalRounds: inputRounds,
-            betweenRoundsEnabled,
-            betweenRoundsTime,
-            ntpSyncEnabled,
-            ntpSyncInterval,
-            ntpDriftThreshold
-          }));
+
+          // Inform server of client URL without overwriting settings
+          ws.send(
+            JSON.stringify({
+              type: 'sync-settings',
+              url: window.location.href
+            })
+          );
         };
 
         ws.onmessage = (event) => {

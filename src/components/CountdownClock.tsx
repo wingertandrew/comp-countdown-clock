@@ -66,6 +66,7 @@ const CountdownClock = () => {
   const [connectedClients, setConnectedClients] = useState<any[]>([]);
   const [clockStatusVisitors, setClockStatusVisitors] = useState<ClockStatusVisitor[]>([]);
   const [settingsSynced, setSettingsSynced] = useState(true);
+  const syncFromServerRef = useRef(false);
 
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
@@ -104,8 +105,14 @@ const CountdownClock = () => {
     }
   }, [addDebugLog, toast]);
 
-  // Debounced auto-sync for time settings
+  // Debounced auto-sync for time settings (only for user input, not server updates)
   useEffect(() => {
+    // Skip auto-sync if this change came from server
+    if (syncFromServerRef.current) {
+      syncFromServerRef.current = false;
+      return;
+    }
+    
     if (autoSyncTimeoutRef.current) {
       clearTimeout(autoSyncTimeoutRef.current);
     }
@@ -219,6 +226,8 @@ useEffect(() => {
               }
               if (data.initialTime) {
                 setInitialTime(data.initialTime);
+                // Mark that these changes come from server to prevent sync loop
+                syncFromServerRef.current = true;
                 setInputMinutes(data.initialTime.minutes);
                 setInputSeconds(data.initialTime.seconds);
                 addDebugLog('UI', 'Initial time synced from server', data.initialTime);

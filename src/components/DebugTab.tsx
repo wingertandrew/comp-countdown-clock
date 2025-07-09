@@ -168,6 +168,13 @@ const DebugTab: React.FC<DebugTabProps> = ({
               NTP ({debugLog.filter(e => e.source === 'NTP').length})
             </Button>
             <Button
+              variant={debugFilter === 'ALERTS' ? 'default' : 'outline'}
+              onClick={() => setDebugFilter('ALERTS')}
+              className="text-lg h-12 px-6 text-white bg-gray-700 hover:bg-gray-600"
+            >
+              Alerts ({debugLog.filter(e => e.source === 'ALERTS').length})
+            </Button>
+            <Button
               variant="outline"
               onClick={handleDownloadCSV}
               className="text-lg h-12 px-6 text-white bg-blue-600 hover:bg-blue-700"
@@ -193,10 +200,15 @@ const DebugTab: React.FC<DebugTabProps> = ({
                     {new Date(entry.timestamp).toLocaleTimeString()}
                   </span>
                   <span className={`px-3 py-1 rounded text-lg font-bold ${
-                    entry.source === 'UI' ? 'bg-blue-600 text-white' :
-                    entry.source === 'API' ? 'bg-green-600 text-white' :
-                    entry.source === 'NTP' ? 'bg-orange-600 text-white' :
-                    'bg-purple-600 text-white'
+                    entry.source === 'UI'
+                      ? 'bg-blue-600 text-white'
+                      : entry.source === 'API'
+                      ? 'bg-green-600 text-white'
+                      : entry.source === 'NTP'
+                      ? 'bg-orange-600 text-white'
+                      : entry.source === 'ALERTS'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-purple-600 text-white'
                   }`}>
                     {entry.source}
                   </span>

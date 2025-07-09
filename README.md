@@ -11,7 +11,7 @@ A touch-friendly countdown clock application. Originally built for Raspberry Pi,
 - **External Control API** – HTTP endpoints for start, pause, reset and more
 - **WebSocket Updates** – All connected clients stay perfectly in sync
 - **Display Pages** – Read‑only layouts at `/clockpretty` and `/clockarena`
-- **Debug Logging** – Built‑in log viewer with CSV export
+ - **Debug Logging** – Built‑in log viewer with CSV export and Alerts filter
 - **Network Time Sync** – Sync with an NTP server for accurate timing
 - **Responsive Design & Toasts** – Works on any screen with clear feedback
 - **Custom Audio Alerts** – Upload your own sounds for the 10‑second and final
@@ -50,9 +50,10 @@ to use a different port.
 2. **Settings Tab**: Configure timer, rounds, between-rounds options and upload
    audio alert files
 3. **API Info Tab**: Copy-ready HTTP commands and docs
-4. **Debug Tab**: Inspect log entries and export CSV
+4. **Debug Tab**: Inspect log entries (including audio alerts) and export CSV
 5. **Audio Uploads**: Load custom warning and final sounds directly in the
    Settings tab
+6. **Server Playback**: Uploaded alerts also play from the host machine when the timer reaches 10 seconds or zero
 
 ### Additional Displays
 - `GET /clockpretty` – Large dark mode display for broadcasting

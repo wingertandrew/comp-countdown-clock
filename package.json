@@ -65,7 +65,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
     "ws": "^8.17.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "play-sound": "^1.1.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

@@ -8,6 +8,7 @@ import fs from 'fs';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
+import play from 'play-sound';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,6 +18,10 @@ app.use(express.json());
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+const audioPlayer = play();
+let warningPlayed = false;
+let endPlayed = false;
+let lastRound = 1;
 
 // Audio uploads
 const uploadsDir = join(__dirname, 'uploads');
@@ -95,6 +100,42 @@ function normalizeIp(ip) {
   }
   if (ip === '::1') return '127.0.0.1';
   return ip;
+}
+
+function resetAudioFlags() {
+  warningPlayed = false;
+  endPlayed = false;
+  lastRound = serverClockState.currentRound;
+}
+
+function playLocalAudio(fileUrl) {
+  if (!fileUrl) return;
+  const filePath = join(__dirname, fileUrl.replace(/^\//, ''));
+  audioPlayer.play(filePath, err => {
+    if (err) {
+      console.error('Audio playback failed:', err);
+    }
+  });
+}
+
+function checkAndPlayAudio() {
+  if (serverClockState.currentRound !== lastRound) {
+    resetAudioFlags();
+  }
+  if (
+    serverClockState.isRunning &&
+    !serverClockState.isPaused &&
+    !serverClockState.isBetweenRounds
+  ) {
+    if (!warningPlayed && serverClockState.minutes === 0 && serverClockState.seconds === 10) {
+      playLocalAudio(serverClockState.warningSoundPath);
+      warningPlayed = true;
+    }
+    if (!endPlayed && serverClockState.minutes === 0 && serverClockState.seconds === 0) {
+      playLocalAudio(serverClockState.endSoundPath);
+      endPlayed = true;
+    }
+  }
 }
 
 function broadcastClients() {
@@ -229,6 +270,7 @@ function startServerTimer() {
   serverTimer = setInterval(() => {
     if (serverClockState.isRunning && !serverClockState.isPaused) {
       updateServerClock();
+      checkAndPlayAudio();
       broadcast({
         type: 'status',
         ...serverClockState
@@ -271,6 +313,7 @@ function updateServerClock() {
       // Between rounds complete, advance to next round
       if (serverClockState.currentRound < serverClockState.totalRounds) {
         serverClockState.currentRound += 1;
+        resetAudioFlags();
         serverClockState.minutes = serverClockState.initialTime.minutes;
         serverClockState.seconds = serverClockState.initialTime.seconds;
         serverClockState.startTime = { ...serverClockState.initialTime };
@@ -325,6 +368,7 @@ function updateServerClock() {
         } else {
           // Auto-advance to next round
           serverClockState.currentRound += 1;
+          resetAudioFlags();
           serverClockState.minutes = serverClockState.initialTime.minutes;
           serverClockState.seconds = serverClockState.initialTime.seconds;
           serverClockState.startTime = { ...serverClockState.initialTime };
@@ -505,6 +549,7 @@ app.post('/api/reset', (_req, res) => {
   serverClockState.betweenRoundsMinutes = 0;
   serverClockState.betweenRoundsSeconds = 0;
   serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  resetAudioFlags();
   broadcast({ action: 'reset' });
   broadcast({ type: 'status', ...serverClockState });
   res.json({ success: true });
@@ -523,6 +568,7 @@ app.post('/api/reset-time', (_req, res) => {
   serverClockState.totalPausedTime = 0;
   serverClockState.currentPauseDuration = 0;
   serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  resetAudioFlags();
   broadcast({ action: 'reset-time' });
   broadcast({ type: 'status', ...serverClockState });
   res.json({ success: true });
@@ -545,6 +591,7 @@ app.post('/api/reset-rounds', (_req, res) => {
   serverClockState.betweenRoundsMinutes = 0;
   serverClockState.betweenRoundsSeconds = 0;
   serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  resetAudioFlags();
   broadcast({ action: 'reset-rounds' });
   broadcast({ type: 'status', ...serverClockState });
   res.json({ success: true });
@@ -568,6 +615,7 @@ app.post('/api/next-round', (_req, res) => {
     serverClockState.betweenRoundsMinutes = 0;
     serverClockState.betweenRoundsSeconds = 0;
     serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    resetAudioFlags();
   }
   broadcast({ action: 'next-round' });
   broadcast({ type: 'status', ...serverClockState });
@@ -592,6 +640,7 @@ app.post('/api/previous-round', (_req, res) => {
     serverClockState.betweenRoundsMinutes = 0;
     serverClockState.betweenRoundsSeconds = 0;
     serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    resetAudioFlags();
   }
   broadcast({ action: 'previous-round' });
   broadcast({ type: 'status', ...serverClockState });
@@ -636,6 +685,7 @@ app.post('/api/set-time', (req, res) => {
   serverClockState.totalPausedTime = 0;
   serverClockState.currentPauseDuration = 0;
   serverClockState.pauseStartTime = null;
+  resetAudioFlags();
   broadcast({ action: 'set-time', minutes: newMinutes, seconds: newSeconds });
   // Immediately broadcast updated status so all clients reflect the change
   broadcast({ type: 'status', ...serverClockState });
@@ -647,6 +697,7 @@ app.post('/api/set-rounds', (req, res) => {
   const { rounds } = req.body;
   serverClockState.totalRounds = rounds || 3;
   serverClockState.currentRound = 1;
+  resetAudioFlags();
   broadcast({ action: 'set-rounds', rounds });
   res.json({ success: true });
 });

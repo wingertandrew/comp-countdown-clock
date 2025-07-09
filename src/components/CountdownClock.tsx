@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Info, Server, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -64,14 +65,63 @@ const CountdownClock = () => {
   const [ipAddress, setIpAddress] = useState('');
   const [connectedClients, setConnectedClients] = useState<any[]>([]);
   const [clockStatusVisitors, setClockStatusVisitors] = useState<ClockStatusVisitor[]>([]);
+  const [settingsSynced, setSettingsSynced] = useState(true);
 
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const ntpManagerRef = useRef<NTPSyncManager | null>(null);
   const warningAudioRef = useRef<HTMLAudioElement | null>(null);
   const endAudioRef = useRef<HTMLAudioElement | null>(null);
+  const autoSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { addDebugLog, ...debugLogProps } = useDebugLog();
+
+  // Auto-sync time settings to server with debouncing
+  const syncTimeToServer = useCallback(async (minutes: number, seconds: number, silent = false) => {
+    try {
+      const response = await fetch('/api/set-time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes, seconds })
+      });
+      
+      if (response.ok) {
+        setInitialTime({ minutes, seconds });
+        setClockState(prev => ({
+          ...prev,
+          minutes,
+          seconds
+        }));
+        setSettingsSynced(true);
+        addDebugLog('SETTINGS', 'Time auto-synced to server', { minutes, seconds });
+        if (!silent) {
+          toast({ title: 'Time settings synchronized' });
+        }
+      }
+    } catch (error) {
+      addDebugLog('SETTINGS', 'Failed to auto-sync time', { error: error.message });
+      setSettingsSynced(false);
+    }
+  }, [addDebugLog, toast]);
+
+  // Debounced auto-sync for time settings
+  useEffect(() => {
+    if (autoSyncTimeoutRef.current) {
+      clearTimeout(autoSyncTimeoutRef.current);
+    }
+    
+    setSettingsSynced(false);
+    
+    autoSyncTimeoutRef.current = setTimeout(() => {
+      syncTimeToServer(inputMinutes, inputSeconds, true);
+    }, 500);
+
+    return () => {
+      if (autoSyncTimeoutRef.current) {
+        clearTimeout(autoSyncTimeoutRef.current);
+      }
+    };
+  }, [inputMinutes, inputSeconds, syncTimeToServer]);
 
 // Load audio paths from server or fallback to localStorage
 useEffect(() => {
@@ -105,7 +155,6 @@ useEffect(() => {
 
   loadAudioPaths();
 }, []);
-
 
   // Get local IP address for display
   useEffect(() => {
@@ -161,19 +210,21 @@ useEffect(() => {
                 });
               }
 
-              // Only update these settings if they exist in the server response
-              // This prevents the server from overriding local setting changes
+              // Sync UI with server settings on connection
               if (typeof data.betweenRoundsEnabled === 'boolean') {
                 setBetweenRoundsEnabled(data.betweenRoundsEnabled);
               }
               if (typeof data.betweenRoundsTime === 'number') {
                 setBetweenRoundsTime(data.betweenRoundsTime);
               }
-              // Remove the automatic NTP sync state updates from server
-              // The server should only update NTP state when explicitly set via API
-              
               if (data.initialTime) {
                 setInitialTime(data.initialTime);
+                setInputMinutes(data.initialTime.minutes);
+                setInputSeconds(data.initialTime.seconds);
+                addDebugLog('SETTINGS', 'Initial time synced from server', data.initialTime);
+              }
+              if (typeof data.totalRounds === 'number') {
+                setInputRounds(data.totalRounds);
               }
             } else if (data.type === 'clients') {
               setConnectedClients(data.clients || []);
@@ -412,18 +463,25 @@ useEffect(() => {
 
   const resetTime = async () => {
     try {
+      // First sync current settings to server
+      await syncTimeToServer(inputMinutes, inputSeconds, true);
+      
       const response = await fetch('/api/reset-time', { method: 'POST' });
       if (response.ok) {
-        addDebugLog('UI', 'Time reset via API');
+        addDebugLog('UI', 'Time reset via API with current settings', { 
+          minutes: inputMinutes, 
+          seconds: inputSeconds 
+        });
         clearAudioAlerts();
         // Immediately set local state to ensure neutral grey color
         setClockState(prev => ({
           ...prev,
           isRunning: false,
           isPaused: false,
-          minutes: initialTime.minutes,
-          seconds: initialTime.seconds
+          minutes: inputMinutes,
+          seconds: inputSeconds
         }));
+        toast({ title: `Time reset to ${inputMinutes}:${inputSeconds.toString().padStart(2, '0')}` });
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to reset time', { error: error.message });
@@ -432,9 +490,16 @@ useEffect(() => {
 
   const resetRounds = async () => {
     try {
+      // First sync current settings to server
+      await syncTimeToServer(inputMinutes, inputSeconds, true);
+      
       const response = await fetch('/api/reset-rounds', { method: 'POST' });
       if (response.ok) {
-        addDebugLog('UI', 'Rounds reset via API');
+        addDebugLog('UI', 'Rounds reset via API with current settings', {
+          minutes: inputMinutes,
+          seconds: inputSeconds,
+          rounds: inputRounds
+        });
         clearAudioAlerts();
         // Immediately set local state to ensure neutral grey color
         setClockState(prev => ({
@@ -442,12 +507,13 @@ useEffect(() => {
           isRunning: false,
           isPaused: false,
           currentRound: 1,
-          minutes: initialTime.minutes,
-          seconds: initialTime.seconds,
+          minutes: inputMinutes,
+          seconds: inputSeconds,
           elapsedMinutes: 0,
           elapsedSeconds: 0,
           isBetweenRounds: false
         }));
+        toast({ title: `Reset to Round 1 with ${inputMinutes}:${inputSeconds.toString().padStart(2, '0')}` });
       }
     } catch (error) {
       addDebugLog('UI', 'Failed to reset rounds', { error: error.message });
@@ -462,16 +528,13 @@ useEffect(() => {
     if (clockState.currentRound < clockState.totalRounds) {
       try {
         // Ensure server initial time matches current timer settings
-        await fetch('/api/set-time', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ minutes: inputMinutes, seconds: inputSeconds })
-        });
+        await syncTimeToServer(inputMinutes, inputSeconds, true);
 
         const response = await fetch('/api/next-round', { method: 'POST' });
         if (response.ok) {
           addDebugLog('UI', 'Next round via API', {
-            round: clockState.currentRound + 1
+            round: clockState.currentRound + 1,
+            timeSettings: { minutes: inputMinutes, seconds: inputSeconds }
           });
           clearAudioAlerts();
         }
@@ -501,15 +564,18 @@ useEffect(() => {
       setClockState(prev => ({
         ...prev,
         currentRound: newRound,
-        minutes: initialTime.minutes,
-        seconds: initialTime.seconds,
+        minutes: inputMinutes,
+        seconds: inputSeconds,
         isRunning: false,
         isPaused: false,
         elapsedMinutes: 0,
         elapsedSeconds: 0,
         isBetweenRounds: false
       }));
-      addDebugLog('UI', 'Previous round', { round: newRound });
+      addDebugLog('UI', 'Previous round', { 
+        round: newRound,
+        timeSettings: { minutes: inputMinutes, seconds: inputSeconds }
+      });
       clearAudioAlerts();
     }
   };
@@ -669,6 +735,7 @@ if (endAudioFile) {
           <TabsTrigger value="settings" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Settings className="w-5 h-5 mr-2" />
             Settings
+            {!settingsSynced && <span className="ml-1 w-2 h-2 bg-yellow-500 rounded-full"></span>}
           </TabsTrigger>
           <TabsTrigger value="info" className="text-lg py-3 data-[state=active]:bg-gray-600">
             <Info className="w-5 h-5 mr-2" />

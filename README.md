@@ -182,6 +182,13 @@ with `npm run build`, start the server with:
 npm start
 ```
 
+Before running the build or start commands make sure all dependencies
+are installed. If you have not yet installed packages, run:
+
+```bash
+npm install
+```
+
 The server serves the contents of the `dist` directory and keeps all connected
 WebSocket clients in sync. API endpoints such as `/api/start`, `/api/pause` and
 others broadcast commands to every client and the clients report their status

@@ -354,11 +354,13 @@ function updateServerClock() {
     const countdownFinished = newMinutes < 0 || (newMinutes === 0 && adjustedSeconds === 0);
 
     if (countdownFinished) {
+      // Set final time before state transitions so audio can play
+      serverClockState.minutes = 0;
+      serverClockState.seconds = 0;
+      checkAndPlayAudio();
       if (serverClockState.currentRound < serverClockState.totalRounds) {
         if (serverClockState.betweenRoundsEnabled) {
           // Start between rounds timer
-          serverClockState.minutes = 0;
-          serverClockState.seconds = 0;
           serverClockState.isBetweenRounds = true;
           serverClockState.betweenRoundsMinutes = 0;
           serverClockState.betweenRoundsSeconds = 0;

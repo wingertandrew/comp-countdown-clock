@@ -122,6 +122,9 @@ curl -X POST http://localhost:4040/api/set-between-rounds \
 curl http://localhost:4040/api/status
 ```
 
+The web interface fetches this endpoint when it loads to populate the Settings
+tab with the current configuration from the server.
+
 The application also exposes a lightweight endpoint for integrations:
 
 ```bash

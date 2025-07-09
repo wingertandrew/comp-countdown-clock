@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, SkipForward, SkipBack, Plus, Minus, RotateCcw, History, Wifi, WifiOff } from 'lucide-react';
@@ -95,8 +97,8 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           style={{ backgroundColor: statusColor }}
         >
           <div className="flex flex-col items-center gap-2 sm:gap-3 text-black">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
+            <div className="flex items-center justify-center w-full">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold">
                 <div className="flex items-center gap-2 sm:gap-3">
                   {clockState.isRunning && !clockState.isPaused ? (
                     <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] md:border-l-[20px] border-l-black border-t-[8px] sm:border-t-[10px] md:border-t-[12px] border-t-transparent border-b-[8px] sm:border-b-[10px] md:border-b-[12px] border-b-transparent"></div>
@@ -112,7 +114,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
                 </div>
               </div>
               {clockState.isPaused && (
-                <div className="bg-black/20 rounded-full px-3 py-1 text-sm sm:text-base md:text-lg font-mono">
+                <div className="bg-black/20 rounded-full px-3 py-1 text-sm sm:text-base md:text-lg font-mono ml-auto">
                   {formatDuration(clockState.currentPauseDuration)}
                 </div>
               )}
@@ -148,11 +150,37 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
           </div>
         </div>
 
-        {/* Round Info */}
-        <div className="text-center text-white mb-4 sm:mb-6 md:mb-8">
+        {/* Round Info with Audio Alert Status */}
+        <div className="text-center text-white mb-4 sm:mb-6 md:mb-8 relative">
           <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold">
             ROUND {clockState.currentRound} of {clockState.totalRounds}
           </div>
+          
+          {/* Audio Alert Status - positioned to the right */}
+          {audioAlertStatus && (
+            <div className="absolute top-0 right-0 text-lg sm:text-xl md:text-2xl">
+              {audioAlertStatus === 'warning-success' && (
+                <div className="text-green-400">
+                  10 Second Warning Clapper
+                </div>
+              )}
+              {audioAlertStatus === 'warning-fail' && (
+                <div className="text-red-400">
+                  Failed to play 10 Second Warning Clapper
+                </div>
+              )}
+              {audioAlertStatus === 'end-success' && (
+                <div className="text-green-400">
+                  Round End Played
+                </div>
+              )}
+              {audioAlertStatus === 'end-fail' && (
+                <div className="text-red-400">
+                  Failed to play Round End Played
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Control Buttons - Responsive grid */}
@@ -247,26 +275,6 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
                 NTP Syncs: {ntpSyncStatus.syncCount} | Errors: {ntpSyncStatus.errorCount}
               </div>
             )}
-            {audioAlertStatus === 'warning-success' && (
-              <div className="text-green-400 text-lg sm:text-xl md:text-2xl">
-                10s warning sound played
-              </div>
-            )}
-            {audioAlertStatus === 'warning-fail' && (
-              <div className="text-red-400 text-lg sm:text-xl md:text-2xl">
-                Failed to play 10s warning sound
-              </div>
-            )}
-            {audioAlertStatus === 'end-success' && (
-              <div className="text-green-400 text-lg sm:text-xl md:text-2xl">
-                Final second sound played
-              </div>
-            )}
-            {audioAlertStatus === 'end-fail' && (
-              <div className="text-red-400 text-lg sm:text-xl md:text-2xl">
-                Failed to play final second sound
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -275,3 +283,4 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({
 };
 
 export default ClockDisplay;
+

@@ -14,6 +14,8 @@ A touch-friendly countdown clock application. Originally built for Raspberry Pi,
 - **Debug Logging** – Built‑in log viewer with CSV export
 - **Network Time Sync** – Sync with an NTP server for accurate timing
 - **Responsive Design & Toasts** – Works on any screen with clear feedback
+- **Custom Audio Alerts** – Upload your own sounds for the 10‑second and final
+  countdown cues
 
 ## Installation & Setup
 
@@ -45,9 +47,12 @@ to use a different port.
 
 ### Touch Interface
 1. **Clock Tab**: Main countdown display with large timer and controls
-2. **Settings Tab**: Configure timer, rounds and between-rounds options
+2. **Settings Tab**: Configure timer, rounds, between-rounds options and upload
+   audio alert files
 3. **API Info Tab**: Copy-ready HTTP commands and docs
 4. **Debug Tab**: Inspect log entries and export CSV
+5. **Audio Uploads**: Load custom warning and final sounds directly in the
+   Settings tab
 
 ### Additional Displays
 - `GET /clockpretty` – Large dark mode display for broadcasting

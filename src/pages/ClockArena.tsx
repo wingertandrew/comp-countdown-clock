@@ -34,17 +34,28 @@ const ClockArena = () => {
   const [endSoundPath, setEndSoundPath] = useState<string | null>(null);
   const warningAudioRef = useRef<HTMLAudioElement | null>(null);
   const endAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+// Load audio paths from server first, fallback to localStorage
+useEffect(() => {
+  const loadAudioPaths = async () => {
+    try {
+      const res = await fetch('/api/audio');
+      const data = await res.json();
+      if (data.warningSoundPath) setWarningSoundPath(data.warningSoundPath);
+      if (data.endSoundPath) setEndSoundPath(data.endSoundPath);
+    } catch {
+      // Fallback to localStorage if fetch fails
+      if (typeof window !== 'undefined') {
+        const localWarning = localStorage.getItem('warningSoundPath');
+        const localEnd = localStorage.getItem('endSoundPath');
+        if (localWarning) setWarningSoundPath(localWarning);
+        if (localEnd) setEndSoundPath(localEnd);
+      }
+    }
+  };
+  loadAudioPaths();
+}, []);
 
-  // Load audio paths from server
-  useEffect(() => {
-    fetch('/api/audio')
-      .then(res => res.json())
-      .then(data => {
-        setWarningSoundPath(data.warningSoundPath);
-        setEndSoundPath(data.endSoundPath);
-      })
-      .catch(() => {});
-  }, []);
 
   // Update audio refs when paths change
   useEffect(() => {

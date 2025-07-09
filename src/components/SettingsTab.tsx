@@ -294,28 +294,80 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     if (f) setWarningSoundPath(f.name);
                   }}
                   className="bg-gray-700 border-gray-500 text-white rounded-xl"
-                />
-                {warningSoundPath && (
-                  <p className="text-sm text-gray-400">Current: {warningSoundPath}</p>
-                )}
-              </div>
-              <div className="flex flex-col space-y-4">
-                <label className="block text-xl font-medium text-white">
-                  Final Second Sound
-                </label>
-                <Input
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] || null;
-                    setEndSoundFile(f);
-                    if (f) setEndSoundPath(f.name);
-                  }}
-                  className="bg-gray-700 border-gray-500 text-white rounded-xl"
-                />
-                {endSoundPath && (
-                  <p className="text-sm text-gray-400">Current: {endSoundPath}</p>
-                )}
+<Card className="bg-gray-700 border-gray-500">
+  <CardHeader>
+    <CardTitle className="text-2xl text-white flex items-center gap-3">
+      <Volume2 className="w-8 h-8" />
+      Audio Alerts
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-6">
+    
+    {/* Warning Sound */}
+    <div className="flex flex-col space-y-4">
+      <label className="block text-xl font-medium text-white">
+        10s Warning Sound
+      </label>
+      <Input
+        type="file"
+        accept="audio/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0] || null;
+          setWarningSoundFile(file);
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === 'string') {
+                setWarningSoundPath(reader.result);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        }}
+        className="bg-gray-700 border-gray-500 text-white rounded-xl p-2"
+      />
+      {warningSoundPath && (
+        <div className="text-sm text-gray-400 space-y-1">
+          <p>Current: {typeof warningSoundPath === 'string' && warningSoundPath.length < 100 ? warningSoundPath : 'Uploaded audio'}</p>
+          <audio controls src={warningSoundPath} className="w-full" />
+        </div>
+      )}
+    </div>
+
+    {/* End Sound */}
+    <div className="flex flex-col space-y-4">
+      <label className="block text-xl font-medium text-white">
+        Final Second Sound
+      </label>
+      <Input
+        type="file"
+        accept="audio/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0] || null;
+          setEndSoundFile(file);
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === 'string') {
+                setEndSoundPath(reader.result);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        }}
+        className="bg-gray-700 border-gray-500 text-white rounded-xl p-2"
+      />
+      {endSoundPath && (
+        <div className="text-sm text-gray-400 space-y-1">
+          <p>Current: {typeof endSoundPath === 'string' && endSoundPath.length < 100 ? endSoundPath : 'Uploaded audio'}</p>
+          <audio controls src={endSoundPath} className="w-full" />
+        </div>
+      )}
+    </div>
+
+  </CardContent>
+</Card>
+
               </div>
             </CardContent>
           </Card>

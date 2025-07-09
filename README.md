@@ -53,6 +53,7 @@ to use a different port.
 4. **Debug Tab**: Inspect log entries and export CSV
 5. **Audio Uploads**: Load custom warning and final sounds directly in the
    Settings tab
+6. **Server Playback**: Uploaded alerts also play from the host machine when the timer reaches 10 seconds or zero
 
 ### Additional Displays
 - `GET /clockpretty` – Large dark mode display for broadcasting

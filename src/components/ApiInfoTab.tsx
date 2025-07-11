@@ -277,6 +277,10 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                 </pre>
               </div>
               <p>
+                The <code className="bg-gray-900 px-2 py-1 rounded">timeStamp</code>
+                {' '}indicates when the clock state was last changed.
+              </p>
+              <p>
                 Connect to the WebSocket at{' '}
                 <code className="bg-gray-900 px-2 py-1 rounded">ws://{ipAddress}:{window.location.port || 4040}/ws</code>
                 {' '}to receive <code className="bg-gray-900 px-2 py-1 rounded">status</code>{' '}

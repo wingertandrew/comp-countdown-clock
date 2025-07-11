@@ -63,8 +63,16 @@ let serverClockState = {
   ntpSyncEnabled: false,
   ntpOffset: 0,
   ntpSyncInterval: Number(process.env.NTP_SYNC_INTERVAL) || 1800000,
-  ntpDriftThreshold: Number(process.env.NTP_DRIFT_THRESHOLD) || 50
+  ntpDriftThreshold: Number(process.env.NTP_DRIFT_THRESHOLD) || 50,
+  endTime: null,
+  timeStamp: null
 };
+
+serverClockState.timeStamp = Date.now();
+serverClockState.endTime = new Date(
+  serverClockState.timeStamp +
+    (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+).toISOString();
 
 let serverTimer = null;
 let ntpSyncTimer = null;
@@ -237,8 +245,19 @@ async function performNtpSync() {
     const networkDelay = (after - before) / 2;
     const clientTime = before + networkDelay;
     const offset = serverTime - clientTime;
+    const diff = offset - serverClockState.ntpOffset;
     serverClockState.ntpOffset = offset;
-    serverClockState.lastUpdateTime = Date.now() + offset;
+    serverClockState.lastUpdateTime += diff;
+    if (serverClockState.timeStamp !== null) {
+      serverClockState.timeStamp += diff;
+    }
+    if (serverClockState.pauseStartTime) {
+      serverClockState.pauseStartTime += diff;
+    }
+    if (serverClockState.endTime) {
+      const end = new Date(serverClockState.endTime).getTime() + diff;
+      serverClockState.endTime = new Date(end).toISOString();
+    }
     broadcast({ type: 'status', ...serverClockState });
   } catch (err) {
     console.error('Scheduled time sync failed:', err);
@@ -327,11 +346,18 @@ function updateServerClock() {
         serverClockState.totalPausedTime = 0;
         serverClockState.currentPauseDuration = 0;
         serverClockState.pauseStartTime = null;
+        serverClockState.timeStamp = now;
+        serverClockState.endTime = new Date(
+          serverClockState.timeStamp +
+            (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+        ).toISOString();
         console.log('Between rounds complete, advanced to round', serverClockState.currentRound);
       } else {
         // All rounds complete
         serverClockState.isRunning = false;
         serverClockState.isBetweenRounds = false;
+        serverClockState.timeStamp = now;
+        serverClockState.endTime = new Date(serverClockState.timeStamp).toISOString();
         console.log('All rounds complete');
       }
     } else {
@@ -366,6 +392,10 @@ function updateServerClock() {
           serverClockState.betweenRoundsSeconds = 0;
           serverClockState.elapsedMinutes = elapsedMinutes;
           serverClockState.elapsedSeconds = elapsedSeconds;
+          serverClockState.timeStamp = now;
+          serverClockState.endTime = new Date(
+            serverClockState.timeStamp + serverClockState.betweenRoundsTime * 1000
+          ).toISOString();
           console.log('Starting between rounds timer');
         } else {
           // Auto-advance to next round
@@ -376,6 +406,11 @@ function updateServerClock() {
           serverClockState.startTime = { ...serverClockState.initialTime };
           serverClockState.elapsedMinutes = 0;
           serverClockState.elapsedSeconds = 0;
+          serverClockState.timeStamp = now;
+          serverClockState.endTime = new Date(
+            serverClockState.timeStamp +
+              (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+          ).toISOString();
           console.log('Auto-advanced to round', serverClockState.currentRound);
         }
       } else {
@@ -385,6 +420,8 @@ function updateServerClock() {
         serverClockState.seconds = 0;
         serverClockState.elapsedMinutes = elapsedMinutes;
         serverClockState.elapsedSeconds = elapsedSeconds;
+        serverClockState.timeStamp = now;
+        serverClockState.endTime = new Date(serverClockState.timeStamp).toISOString();
         console.log('Timer completed - all rounds finished');
       }
   } else {
@@ -506,6 +543,11 @@ app.post('/api/start', (_req, res) => {
   serverClockState.pauseStartTime = null;
   serverClockState.currentPauseDuration = 0;
   serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  serverClockState.timeStamp = serverClockState.lastUpdateTime;
+  const remainingSeconds = serverClockState.minutes * 60 + serverClockState.seconds;
+  serverClockState.endTime = new Date(
+    serverClockState.timeStamp + remainingSeconds * 1000
+  ).toISOString();
   broadcast({ action: 'start' });
   res.json({ success: true });
 });
@@ -524,11 +566,15 @@ app.post('/api/pause', (_req, res) => {
     serverClockState.pauseStartTime = null;
     serverClockState.currentPauseDuration = 0;
     serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    serverClockState.timeStamp = serverClockState.lastUpdateTime;
+    const remain = serverClockState.minutes * 60 + serverClockState.seconds;
+    serverClockState.endTime = new Date(serverClockState.timeStamp + remain * 1000).toISOString();
   } else {
     // Pause
     serverClockState.isPaused = true;
     serverClockState.pauseStartTime = Date.now() + serverClockState.ntpOffset;
     serverClockState.lastUpdateTime = serverClockState.pauseStartTime;
+    serverClockState.timeStamp = serverClockState.lastUpdateTime;
   }
   broadcast({ action: 'pause' });
   res.json({ success: true });
@@ -551,6 +597,11 @@ app.post('/api/reset', (_req, res) => {
   serverClockState.betweenRoundsMinutes = 0;
   serverClockState.betweenRoundsSeconds = 0;
   serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  serverClockState.timeStamp = serverClockState.lastUpdateTime;
+  serverClockState.endTime = new Date(
+    serverClockState.timeStamp +
+      (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+  ).toISOString();
   resetAudioFlags();
   broadcast({ action: 'reset' });
   broadcast({ type: 'status', ...serverClockState });
@@ -570,6 +621,11 @@ app.post('/api/reset-time', (_req, res) => {
   serverClockState.totalPausedTime = 0;
   serverClockState.currentPauseDuration = 0;
   serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  serverClockState.timeStamp = serverClockState.lastUpdateTime;
+  serverClockState.endTime = new Date(
+    serverClockState.timeStamp +
+      (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+  ).toISOString();
   resetAudioFlags();
   broadcast({ action: 'reset-time' });
   broadcast({ type: 'status', ...serverClockState });
@@ -593,6 +649,11 @@ app.post('/api/reset-rounds', (_req, res) => {
   serverClockState.betweenRoundsMinutes = 0;
   serverClockState.betweenRoundsSeconds = 0;
   serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  serverClockState.timeStamp = serverClockState.lastUpdateTime;
+  serverClockState.endTime = new Date(
+    serverClockState.timeStamp +
+      (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+  ).toISOString();
   resetAudioFlags();
   broadcast({ action: 'reset-rounds' });
   broadcast({ type: 'status', ...serverClockState });
@@ -617,6 +678,11 @@ app.post('/api/next-round', (_req, res) => {
     serverClockState.betweenRoundsMinutes = 0;
     serverClockState.betweenRoundsSeconds = 0;
     serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    serverClockState.timeStamp = serverClockState.lastUpdateTime;
+    serverClockState.endTime = new Date(
+      serverClockState.timeStamp +
+        (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+    ).toISOString();
     resetAudioFlags();
   }
   broadcast({ action: 'next-round' });
@@ -642,6 +708,11 @@ app.post('/api/previous-round', (_req, res) => {
     serverClockState.betweenRoundsMinutes = 0;
     serverClockState.betweenRoundsSeconds = 0;
     serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    serverClockState.timeStamp = serverClockState.lastUpdateTime;
+    serverClockState.endTime = new Date(
+      serverClockState.timeStamp +
+        (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+    ).toISOString();
     resetAudioFlags();
   }
   broadcast({ action: 'previous-round' });
@@ -662,7 +733,14 @@ app.post('/api/adjust-time', (req, res) => {
     if (!serverClockState.isRunning) {
       serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
     }
-    
+
+    serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    serverClockState.timeStamp = serverClockState.lastUpdateTime;
+    serverClockState.endTime = new Date(
+      serverClockState.timeStamp +
+        (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+    ).toISOString();
+
     broadcast({ action: 'adjust-time', minutes: newMinutes, seconds: newSeconds });
     broadcast({ type: 'status', ...serverClockState });
   }
@@ -687,6 +765,12 @@ app.post('/api/set-time', (req, res) => {
   serverClockState.totalPausedTime = 0;
   serverClockState.currentPauseDuration = 0;
   serverClockState.pauseStartTime = null;
+  serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+  serverClockState.timeStamp = serverClockState.lastUpdateTime;
+  serverClockState.endTime = new Date(
+    serverClockState.timeStamp +
+      (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+  ).toISOString();
   resetAudioFlags();
   broadcast({ action: 'set-time', minutes: newMinutes, seconds: newSeconds });
   // Immediately broadcast updated status so all clients reflect the change
@@ -748,7 +832,13 @@ app.post('/api/add-second', (_req, res) => {
     if (!serverClockState.isRunning) {
       serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
     }
-    
+    serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    serverClockState.timeStamp = serverClockState.lastUpdateTime;
+    serverClockState.endTime = new Date(
+      serverClockState.timeStamp +
+        (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+    ).toISOString();
+
     broadcast({ action: 'add-second', minutes: newMinutes, seconds: newSeconds });
     broadcast({ type: 'status', ...serverClockState });
   }
@@ -767,7 +857,13 @@ app.post('/api/remove-second', (_req, res) => {
     if (!serverClockState.isRunning) {
       serverClockState.startTime = { minutes: newMinutes, seconds: newSeconds };
     }
-    
+    serverClockState.lastUpdateTime = Date.now() + serverClockState.ntpOffset;
+    serverClockState.timeStamp = serverClockState.lastUpdateTime;
+    serverClockState.endTime = new Date(
+      serverClockState.timeStamp +
+        (serverClockState.minutes * 60 + serverClockState.seconds) * 1000
+    ).toISOString();
+
     broadcast({ action: 'remove-second', minutes: newMinutes, seconds: newSeconds });
     broadcast({ type: 'status', ...serverClockState });
   }
@@ -842,30 +938,19 @@ app.get('/clock_status', (req, res) => {
 
   const now = Date.now() + serverClockState.ntpOffset;
   let status = 0; // 0 = stopped, 1 = running, 2 = paused, 3 = between rounds
-  let endTime = null;
   let pauseTime = null;
-  
+
   if (serverClockState.isBetweenRounds) {
     status = 3;
-    const remainingBetweenRoundsTime = serverClockState.betweenRoundsTime - 
-      (serverClockState.betweenRoundsMinutes * 60 + serverClockState.betweenRoundsSeconds);
-    endTime = new Date(now + (remainingBetweenRoundsTime * 1000)).toISOString();
   } else if (serverClockState.isPaused) {
     status = 2;
-    pauseTime = serverClockState.pauseStartTime ? 
-      new Date(serverClockState.pauseStartTime).toISOString() : 
-      new Date(now).toISOString();
-    // Calculate end time if timer were to resume
-    const remainingTime = (serverClockState.minutes * 60) + serverClockState.seconds;
-    endTime = new Date(now + (remainingTime * 1000)).toISOString();
+    pauseTime = serverClockState.pauseStartTime
+      ? new Date(serverClockState.pauseStartTime).toISOString()
+      : new Date(now).toISOString();
   } else if (serverClockState.isRunning) {
     status = 1;
-    const remainingTime = (serverClockState.minutes * 60) + serverClockState.seconds;
-    endTime = new Date(now + (remainingTime * 1000)).toISOString();
   } else {
     status = 0;
-    const totalTime = (serverClockState.minutes * 60) + serverClockState.seconds;
-    endTime = new Date(now + (totalTime * 1000)).toISOString();
   }
   
   // Format clock time as M:SS
@@ -875,11 +960,11 @@ app.get('/clock_status', (req, res) => {
   
   const response = {
     status,
-    endTime,
+    endTime: serverClockState.endTime,
     pauseTime,
     localIpAddress: getLocalIpAddress(),
     clockTime,
-    timeStamp: new Date(now).toISOString()
+    timeStamp: new Date(serverClockState.timeStamp).toISOString()
   };
   
   res.json(response);

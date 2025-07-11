@@ -216,8 +216,8 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
             </div>
 
             <div>
-              <h3 className="text-2xl font-bold text-orange-400 mb-6">Bitfocus Companion Integration</h3>
-              <div className="bg-gray-700 p-6 rounded-xl text-lg">
+          <h3 className="text-2xl font-bold text-orange-400 mb-6">Bitfocus Companion Integration</h3>
+          <div className="bg-gray-700 p-6 rounded-xl text-lg">
                 <p className="text-gray-300 mb-4 text-xl">For Bitfocus Companion with Stream Deck:</p>
                 <ul className="list-disc list-inside space-y-3 text-gray-300">
                   <li className="text-lg">Use "Generic HTTP" module in Companion</li>
@@ -240,12 +240,56 @@ const ApiInfoTab: React.FC<ApiInfoTabProps> = ({ ipAddress, onCommandCopy }) => 
                     <div><strong>Remove Second:</strong> <code className="bg-gray-900 px-2 py-1 rounded">POST /api/remove-second</code></div>
                   </div>
                 </div>
-              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div>
+            <h3 className="text-2xl font-bold text-orange-400 mb-6">Connection Instructions</h3>
+            <div className="bg-gray-700 p-6 rounded-xl text-lg space-y-4">
+              <p>
+                The <code className="bg-gray-900 px-2 py-1 rounded">/clock_status</code>
+                {' '}endpoint provides a lightweight snapshot of the timer for integrations
+                that don't require the full{' '}
+                <code className="bg-gray-900 px-2 py-1 rounded">/api/status</code>{' '}response.
+                Each request is logged and recent callers are broadcast to WebSocket
+                clients as a <code className="bg-gray-900 px-2 py-1 rounded">clock_status_visitors</code>
+                {' '}message.
+              </p>
+              <div>
+                <h4 className="font-bold text-white mb-2">Endpoint</h4>
+                <code className="bg-gray-900 px-2 py-1 rounded">GET /clock_status</code>
+              </div>
+              <div>
+                <h4 className="font-bold text-white mb-2">Example Request</h4>
+                <code className="bg-gray-900 px-2 py-1 rounded">curl http://{ipAddress}:{window.location.port || 4040}/clock_status</code>
+              </div>
+              <div>
+                <h4 className="font-bold text-white mb-2">Example Response</h4>
+                <pre className="bg-gray-900 p-2 rounded text-sm overflow-x-auto">
+{`{
+  "status": 1,
+  "endTime": "2024-05-29T12:34:56.789Z",
+  "pauseTime": null,
+  "localIpAddress": "192.168.1.10",
+  "clockTime": "02:15",
+  "timeStamp": "2024-05-29T12:32:41.000Z"
+}`}
+                </pre>
+              </div>
+              <p>
+                Connect to the WebSocket at{' '}
+                <code className="bg-gray-900 px-2 py-1 rounded">ws://{ipAddress}:{window.location.port || 4040}/ws</code>
+                {' '}to receive <code className="bg-gray-900 px-2 py-1 rounded">status</code>{' '}
+                and{' '}
+                <code className="bg-gray-900 px-2 py-1 rounded">clock_status_visitors</code>{' '}
+                updates in real time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
   );
 };
 

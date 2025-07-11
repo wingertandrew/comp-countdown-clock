@@ -18,7 +18,7 @@ The `/clock_status` endpoint offers a lightweight way for external systems to ch
 | `pauseTime`      | ISO timestamp when pause began (`null` if not paused)                |
 | `localIpAddress` | Server's local network IP address                                    |
 | `clockTime`      | Human readable timer display (e.g. `2:30`)                           |
-| `timeStamp`      | Time of the response on the server                                   |
+| `timeStamp`      | Timestamp of the last action that changed the clock |
 
 Example request:
 
@@ -48,11 +48,11 @@ app.get('/clock_status', (req, res) => {
   // ...determine status and endTime...
   const response = {
     status,
-    endTime,
+    endTime: serverClockState.endTime,
     pauseTime,
     localIpAddress: getLocalIpAddress(),
     clockTime,
-    timeStamp: new Date(now).toISOString()
+    timeStamp: serverClockState.timeStamp
   };
   res.json(response);
 });

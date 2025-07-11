@@ -132,6 +132,7 @@ curl http://localhost:4040/clock_status
 ```
 
 Each request to `/clock_status` is recorded and the visitor list is broadcast to all WebSocket clients. The response contains the current timer status, end time, and server IP.
+The `timeStamp` field in this response reflects when the last clock action occurred.
 
 ### NTP Sync
 ```bash
